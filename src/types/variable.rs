@@ -125,15 +125,7 @@ impl VariableNode {
                 })?;
 
                 if delim != '_' {
-                    return Err(ParsingError::new(
-                        s,
-                        Some(&format!(
-                            "Expected Variable Subscript Delimiter, found {}.",
-                            delim
-                        )),
-                        start..n,
-                        Some(CreatedAt::new()),
-                    ));
+                    return Ok(VariableNode::new(base, None, start, false));
                 }
 
                 if let Some((idx, next)) = chars.next() {

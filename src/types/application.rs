@@ -10,7 +10,7 @@ use crate::{
     },
 };
 
-#[derive(Debug, Getters, PartialEq)]
+#[derive(Debug, Getters, PartialEq, Clone)]
 #[getset(get = "pub")]
 pub struct ApplicationNode {
     pub(crate) left: Box<Node>,
@@ -66,5 +66,32 @@ impl ApplicationNode {
         }
 
         None
+    }
+
+    // TODO: Should replace one at a time or both at once?
+    // Both at once for now...
+    pub fn replace<F: Fn((&Node, Option<&VariableNode>)) -> bool>(
+        mut self,
+        f: &F,
+        bound: Option<&VariableNode>,
+        with: Node,
+    ) -> Node {
+        if f((&Node::Application(self.clone()), bound)) {
+            return with;
+        }
+
+        if f((self.left(), bound)) {
+            self.left = Box::new(with.clone());
+        } else {
+            self.left = Box::new(self.left.replace(f, bound, with.clone()))
+        }
+
+        if f((self.right(), bound)) {
+            self.right = Box::new(with);
+        } else {
+            self.right = Box::new(self.right.replace(f, bound, with.clone()));
+        }
+
+        Node::Application(self)
     }
 }

@@ -5,12 +5,15 @@ use derive_more::IsVariant;
 use crate::{
     VALID_LAMBDA_CHARACTERS, find_closing_delim,
     types::{
-        CreatedAt, ParsingError, Span, abstraction::AbstractionNode, application::ApplicationNode,
-        node::Node::Application, variable::VariableNode,
+        CreatedAt, ParsingError, Span,
+        abstraction::AbstractionNode,
+        application::{self, ApplicationNode},
+        node::Node::Application,
+        variable::VariableNode,
     },
 };
 
-#[derive(Debug, IsVariant, PartialEq)]
+#[derive(Debug, IsVariant, PartialEq, Clone)]
 pub enum Node {
     Variable(VariableNode),
     Abstraction(AbstractionNode),
@@ -30,7 +33,7 @@ impl Display for Node {
 }
 
 impl Node {
-    pub(crate) fn parse_str(mut s: &str, start: usize) -> Result<Self, ParsingError> {
+    pub fn parse_str(mut s: &str, start: usize) -> Result<Self, ParsingError> {
         let mut offset = 0;
         while s.starts_with('(') {
             let range = find_closing_delim(s, ['('], ')').map_err(|_| {
@@ -90,6 +93,26 @@ impl Node {
             Node::Variable(variable_node) => variable_node.span(),
             Node::Abstraction(abstraction_node) => abstraction_node.span(),
             Node::Application(application) => application.span(),
+        }
+    }
+
+    pub fn replace<F: Fn((&Node, Option<&VariableNode>)) -> bool>(
+        self,
+        f: &F,
+        bound: Option<&VariableNode>,
+        with: Node,
+    ) -> Self {
+        match self {
+            Node::Abstraction(abstraction_node) => abstraction_node.replace(f, bound, with),
+            Node::Application(application_node) => application_node.replace(f, bound, with),
+
+            ref var => {
+                if f((var, bound)) {
+                    with
+                } else {
+                    self
+                }
+            }
         }
     }
 

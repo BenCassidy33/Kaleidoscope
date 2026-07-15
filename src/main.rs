@@ -1,5 +1,6 @@
 use clap::Parser;
 use kaleidoscope::{
+    Lambda,
     args::{Args, Subcommands},
     repl::run_repl,
     types::node::Node,
@@ -21,7 +22,31 @@ fn do_stuff() -> miette::Result<()> {
 }
 
 fn main() -> miette::Result<()> {
-    // do_stuff();
-    dbg!(kaleidoscope::parse("G := Lm.m"));
+    let Lambda::Statement { mut body } = kaleidoscope::parse("Lm.mx")? else {
+        unreachable!()
+    };
+
+    dbg!(&body.to_string());
+
+    body = body.replace(
+        &|(node, bound)| match node {
+            Node::Variable(var) => {
+                if let Some(bound) = bound
+                    && bound.ident() == var.ident()
+                {
+                    return true;
+                }
+
+                false
+            }
+
+            _ => false,
+        },
+        None,
+        Node::parse_str("x", 0)?,
+    );
+
+    dbg!(&body.to_string());
+
     Ok(())
 }

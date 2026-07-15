@@ -7,7 +7,7 @@ use crate::{
     types::{CreatedAt, ParsingError, Span, node::Node, variable::VariableNode},
 };
 
-#[derive(Debug, Getters, PartialEq)]
+#[derive(Debug, Getters, PartialEq, Clone)]
 #[getset(get = "pub")]
 pub struct AbstractionNode {
     pub(crate) bound: Box<Node>,
@@ -94,5 +94,42 @@ impl AbstractionNode {
         }
 
         None
+    }
+
+    pub fn replace<F: Fn((&Node, Option<&VariableNode>)) -> bool>(
+        mut self,
+        f: &F,
+        bound: Option<&VariableNode>,
+        with: Node,
+    ) -> Node {
+        if f((&Node::Abstraction(self.clone()), bound)) {
+            return with;
+        }
+
+        // replace entire thing if body is just one variable and that is the variable that is being
+        // looked for
+        // if let Node::Variable(var) = self.body().as_ref()
+        //     && f((self.body(), Some(var)))
+        // {
+        //     return with;
+        // }
+
+        if f((self.body(), bound)) {
+            return match *self.body {
+                Node::Variable(_) => with,
+                _ => {
+                    self.body = Box::new(with);
+                    Node::Abstraction(self)
+                }
+            };
+        } else {
+            let Node::Variable(var) = self.bound.as_ref() else {
+                panic!("Extend Syntax not supported yet!");
+            };
+
+            self.body = Box::new(self.body.replace(f, Some(var), with));
+        }
+
+        Node::Abstraction(self)
     }
 }
