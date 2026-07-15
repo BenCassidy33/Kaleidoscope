@@ -84,10 +84,16 @@ impl Node {
     }
 
     pub fn find_mut<F: Fn(&Node) -> bool>(&mut self, f: F) -> Option<&mut Node> {
-        if f(self) {
-            return Some(self);
+        match self {
+            Node::Abstraction(abstraction_node) => abstraction_node.find_mut(f),
+            Node::Application(application_node) => application_node.find_mut(f),
+            variable_node => {
+                if f(variable_node) {
+                    Some(variable_node)
+                } else {
+                    None
+                }
+            }
         }
-
-        None
     }
 }
