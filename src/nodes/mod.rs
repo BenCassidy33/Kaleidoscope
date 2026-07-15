@@ -1,9 +1,14 @@
+use std::panic::Location;
+
 use miette::{Diagnostic, SourceSpan};
 use thiserror::Error;
+
+use crate::nodes::node::Node;
 
 pub mod abstraction;
 pub mod node;
 pub mod variable;
+pub mod application;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Span {
@@ -15,6 +20,11 @@ impl Span {
     #[inline]
     pub fn new(start: usize, end: usize) -> Self {
         Self { start, end }
+    }
+
+    #[inline]
+    pub fn len(&self) -> usize {
+        self.end - self.start
     }
 }
 
@@ -30,6 +40,26 @@ impl From<(usize, usize)> for Span {
     }
 }
 
+#[derive(Debug, Clone)]
+pub struct CreatedAt {
+    file: &'static str,
+    line: u32,
+    column: u32
+}
+
+impl CreatedAt {
+    #[inline]
+    #[track_caller]
+    pub fn new() -> Self {
+        let loc = Location::caller();
+        Self {
+            file: loc.file(),
+            line: loc.line(),
+            column: loc.column()
+        }
+    }
+}
+
 #[derive(Clone, Error, Debug, Diagnostic)]
 #[error("Parsing Error")]
 pub struct ParsingError {
@@ -39,6 +69,8 @@ pub struct ParsingError {
 
     #[label("{msg:?}")]
     error_span: SourceSpan,
+
+    created_at: Option<CreatedAt>
 }
 
 impl ParsingError {
@@ -46,11 +78,13 @@ impl ParsingError {
         src: S,
         msg: Option<S>,
         error_span: N,
+        created_at: Option<CreatedAt>
     ) -> ParsingError {
         ParsingError {
             src: src.into(),
             msg: msg.map(|f| f.into()),
             error_span: error_span.into(),
+            created_at
         }
     }
 
@@ -58,13 +92,32 @@ impl ParsingError {
         src: S,
         open_delim: char,
         open_idx: usize,
+        created_at: Option<CreatedAt>
     ) -> Self {
         let s = src.into();
         ParsingError {
             error_span: (open_idx..s.len()).into(),
             src: s,
             msg: Some(format!("Missing closing delimiter for {open_delim}.")),
+            created_at
         }
     }
 
+}
+
+#[derive(Clone, Error, Debug, Diagnostic)]
+#[error("Parsing Error")]
+pub struct ReductionError {
+    #[source_code]
+    src: String,
+    msg: Option<String>,
+
+    #[label("{msg:?}")]
+    error_span: SourceSpan,
+
+    created_at: Option<CreatedAt>
+}
+
+pub trait Reducable: Sized {
+    fn reduce(self, other: &Node) -> Result<Node, ReductionError>;
 }
