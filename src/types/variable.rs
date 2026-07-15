@@ -3,16 +3,16 @@ use std::fmt::Display;
 use getset::Getters;
 
 use crate::{
-    find_closing_delim,
-    nodes::{CreatedAt, ParsingError, Span},
+    VALID_LAMBDA_CHARACTERS, find_closing_delim,
+    types::{CreatedAt, ParsingError, Span},
 };
 
-#[derive(Debug, Clone, Getters)]
+#[derive(Debug, Clone, Getters, PartialEq)]
 #[getset(get = "pub")]
 pub struct VariableNode {
-    ident: char,
-    subscript: Option<String>,
-    span: Span,
+    pub(crate) ident: char,
+    pub(crate) subscript: Option<String>,
+    pub(crate) span: Span,
 }
 
 impl PartialEq<str> for VariableNode {
@@ -87,6 +87,15 @@ impl VariableNode {
     }
 
     pub fn parse_str(s: &str, start: usize) -> Result<Self, ParsingError> {
+        if s.contains(VALID_LAMBDA_CHARACTERS) {
+            Err(ParsingError::new(
+                s,
+                Some("Variable contains a lambda character"),
+                0..s.len(),
+                Some(CreatedAt::new()),
+            ))?;
+        }
+
         match s.len() {
             0 => Err(ParsingError::new(
                 s,

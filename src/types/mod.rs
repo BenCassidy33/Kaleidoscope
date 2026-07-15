@@ -3,14 +3,17 @@ use std::panic::Location;
 use miette::{Diagnostic, SourceSpan};
 use thiserror::Error;
 
-use crate::nodes::node::Node;
-
 pub mod abstraction;
 pub mod node;
 pub mod variable;
 pub mod application;
 
-#[derive(Debug, Clone, Copy)]
+pub use abstraction::*;
+pub use node::*;
+pub use variable::*;
+pub use application::*;
+
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Span {
     start: usize,
     end: usize,
@@ -25,6 +28,11 @@ impl Span {
     #[inline]
     pub fn len(&self) -> usize {
         self.end - self.start
+    }
+
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
     }
 }
 

@@ -1,4 +1,8 @@
-pub mod nodes;
+#![allow(dead_code)]
+
+pub mod types;
+pub mod repl;
+pub mod args;
 
 pub const LAMBDA_CHAR: char = 'λ';
 pub const VALID_LAMBDA_CHARACTERS: [char; 2] = ['L', LAMBDA_CHAR];

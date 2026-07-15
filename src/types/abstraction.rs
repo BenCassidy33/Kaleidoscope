@@ -4,14 +4,14 @@ use getset::Getters;
 
 use crate::{
     LAMBDA_CHAR, VALID_LAMBDA_CHARACTERS, find_closing_delim,
-    nodes::{CreatedAt, ParsingError, Span, node::Node, variable::VariableNode},
+    types::{CreatedAt, ParsingError, Span, node::Node, variable::VariableNode},
 };
 
-#[derive(Debug, Getters)]
+#[derive(Debug, Getters, PartialEq)]
 #[getset(get = "pub")]
 pub struct AbstractionNode {
-    bound: Box<Node>,
-    body: Box<Node>,
+    pub(crate) bound: Box<Node>,
+    pub(crate) body: Box<Node>,
     pub(crate) span: Span,
 }
 
@@ -44,6 +44,7 @@ impl AbstractionNode {
 
         let (i, bound): (Vec<usize>, Vec<char>) =
             chars.clone().take_while(|(_, c)| *c != '.').unzip();
+
         let bound = bound.iter().collect::<String>();
         if bound.is_empty() {
             return Err(ParsingError::new(
@@ -65,7 +66,7 @@ impl AbstractionNode {
             ));
         };
 
-        let (i, body_start) = chars.nth(i.len()).ok_or_else(|| {
+        let (i, _) = chars.nth(i.len()).ok_or_else(|| {
             ParsingError::new(
                 input,
                 Some("Expected abstraction body, found EOL"),
@@ -74,15 +75,7 @@ impl AbstractionNode {
             )
         })?;
 
-        let body = if body_start == '(' {
-            let range = find_closing_delim(&input[i..], ['('], ')').map_err(|_| {
-                ParsingError::missing_closing_delimiter(input, '(', i, Some(CreatedAt::new()))
-            })?;
-
-            Node::parse_str(&input[range.start + 1..range.end], start + i)?
-        } else {
-            Node::parse_str(&input[i..], start + i)?
-        };
+        let body = Node::parse_str(&input[i + 1..], start + i + 1)?;
 
         Ok(AbstractionNode {
             span: (start..body.span().end).into(),

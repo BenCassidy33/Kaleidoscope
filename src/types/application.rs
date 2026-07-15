@@ -4,23 +4,23 @@ use getset::Getters;
 
 use crate::{
     VALID_LAMBDA_CHARACTERS,
-    nodes::{
+    types::{
         CreatedAt, ParsingError, Span, abstraction::AbstractionNode, node::Node,
         variable::VariableNode,
     },
 };
 
-#[derive(Debug, Getters)]
+#[derive(Debug, Getters, PartialEq)]
 #[getset(get = "pub")]
 pub struct ApplicationNode {
-    left: Box<Node>,
-    right: Box<Node>,
-    span: Span,
+    pub(crate) left: Box<Node>,
+    pub(crate) right: Box<Node>,
+    pub(crate) span: Span,
 }
 
 impl Display for ApplicationNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({}{})", self.left, self.right)
+        write!(f, "({})({})", self.left, self.right)
     }
 }
 
@@ -57,11 +57,11 @@ impl ApplicationNode {
     }
 
     pub fn find_mut<F: Fn(&Node) -> bool>(&mut self, f: F) -> Option<&mut Node> {
-        if f(self.left.as_mut()) {
+        if f(self.left.as_ref()) {
             return Some(self.left.as_mut());
         };
 
-        if f(self.right.as_mut()) {
+        if f(self.right.as_ref()) {
             return Some(self.right.as_mut());
         }
 
