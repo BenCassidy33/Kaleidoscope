@@ -1,0 +1,35 @@
+use crate::{
+    VALID_LAMBDA_CHARACTERS,
+    nodes::{ParsingError, Span, node::Node, variable::VariableNode},
+};
+
+pub struct AbstractionNode {
+    bound: Box<VariableNode>,
+    body: Box<Node>,
+    span: Span,
+}
+
+impl AbstractionNode {
+    pub fn new<S: Into<Span>>(bound: VariableNode, body: Node, span: S) -> Self {
+        Self {
+            bound: Box::new(bound),
+            body: Box::new(body),
+            span: span.into(),
+        }
+    }
+
+    #[allow(clippy::should_implement_trait)]
+    pub fn from_str(input: &str) -> Result<Self, ParsingError> {
+        if !input.starts_with(VALID_LAMBDA_CHARACTERS) {
+            return Err(ParsingError::new(
+                input,
+                Some("Missing a valid abstraction identifier!"),
+                (0..input.len()),
+            ));
+        }
+
+        let chars = input.chars().skip(1);
+
+        todo!()
+    }
+}

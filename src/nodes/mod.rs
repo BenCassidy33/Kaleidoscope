@@ -1,9 +1,11 @@
-use miette::{Diagnostic, NamedSource, SourceSpan};
+use miette::{Diagnostic, SourceSpan};
 use thiserror::Error;
 
+pub mod abstraction;
+pub mod node;
 pub mod variable;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub struct Span {
     start: usize,
     end: usize,
@@ -51,4 +53,18 @@ impl ParsingError {
             error_span: error_span.into(),
         }
     }
+
+    pub fn missing_closing_delimiter<S: Into<String>>(
+        src: S,
+        open_delim: char,
+        open_idx: usize,
+    ) -> Self {
+        let s = src.into();
+        ParsingError {
+            error_span: (open_idx..s.len()).into(),
+            src: s,
+            msg: Some(format!("Missing closing delimiter for {open_delim}.")),
+        }
+    }
+
 }

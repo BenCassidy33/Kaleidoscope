@@ -7,7 +7,7 @@ use crate::{
 pub struct VariableNode {
     base_ident: char,
     subscript: Option<String>,
-    span: Span,
+    pub(crate) span: Span,
 }
 
 impl VariableNode {
