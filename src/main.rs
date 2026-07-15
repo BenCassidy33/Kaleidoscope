@@ -21,6 +21,7 @@ fn do_stuff() -> miette::Result<()> {
 }
 
 fn main() -> miette::Result<()> {
-    do_stuff();
+    // do_stuff();
+    dbg!(kaleidoscope::parse("G := Lm.m"));
     Ok(())
 }

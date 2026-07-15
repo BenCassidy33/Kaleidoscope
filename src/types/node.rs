@@ -30,8 +30,7 @@ impl Display for Node {
 }
 
 impl Node {
-    pub fn parse_str(mut s: &str, start: usize) -> Result<Self, ParsingError> {
-        dbg!(s);
+    pub(crate) fn parse_str(mut s: &str, start: usize) -> Result<Self, ParsingError> {
         let mut offset = 0;
         while s.starts_with('(') {
             let range = find_closing_delim(s, ['('], ')').map_err(|_| {
@@ -55,7 +54,6 @@ impl Node {
         if s.starts_with(VALID_LAMBDA_CHARACTERS) {
             let ab = AbstractionNode::parse_str(s, start + offset)?;
 
-            dbg!(&ab);
             if ab.span().len() < s.len() {
                 let r = Node::parse_str(&s[ab.span().len()..], ab.span().end)?;
                 let sp = start..r.span().end;
@@ -79,28 +77,12 @@ impl Node {
             return Ok(Node::Variable(var));
         }
 
-        dbg!(s);
-        todo!();
-
-        // let left = if s.starts_with(VALID_LAMBDA_CHARACTERS) {
-        //     Node::Abstraction(AbstractionNode::parse_str(s, start + offset)?)
-        // } else {
-        //     if let Ok(var) = VariableNode::parse_str(s, start + offset)
-        //         && var.span().end >= s.len()
-        //     {
-        //         Node::Variable(var)
-        //     } else {
-        //         Node::Application(ApplicationNode::parse_str(s, start + offset)?)
-        //     }
-        // };
-        // dbg!(s);
-        //
-        // if left.span().len() < s.len() {
-        //     let right = Node::parse_str(&s[left.span().len()..], start + left.span().len())?;
-        //     let range = left.span().start..right.span().end;
-        //
-        //     return Ok(Node::Application(ApplicationNode::new(left, right, range)));
-        // }
+        Err(ParsingError::new(
+            s,
+            Some("Invalid Input"),
+            0..s.len(),
+            Some(CreatedAt::new()),
+        ))?
     }
 
     pub fn span(&self) -> &Span {
