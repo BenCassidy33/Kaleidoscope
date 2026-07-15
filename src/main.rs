@@ -13,16 +13,14 @@ fn do_stuff() -> miette::Result<()> {
     if let Some(subcmds) = args.subcommands
         && matches!(subcmds, Subcommands::Interactive { .. })
     {
+        run_repl(&args).map_err(|e| miette::miette!("Repl exited unexpectedly. Reason: {}", e))?;
         todo!();
     }
 
-    run_repl(&args).map_err(|e| miette::miette!("Repl exited unexpectedly. Reason: {}", e))?;
     Ok(())
 }
 
 fn main() -> miette::Result<()> {
-    let mut n = Node::parse_str("(Lm.m)y", 0)?;
-
-    dbg!(n.to_string());
+    do_stuff();
     Ok(())
 }

@@ -1,10 +1,11 @@
+use console::Term;
+use derive_more::Display;
 use std::io::{self, BufRead, Write};
 use thiserror::Error;
-use derive_more::Display;
 
-use crate::args::Args;
+use crate::args::{Args, Subcommands};
 
-const HELLO_MESSAGE: &'static str = "";
+const HELLO_MESSAGE: &'static str = "Welcome to the Kaleidoscope repl. Use /help for help!";
 
 #[derive(Error, Debug)]
 pub enum ReplError {
@@ -12,18 +13,30 @@ pub enum ReplError {
     IoError(#[from] io::Error),
 
     #[error("Unknown error...")]
-    Unknown
+    Unknown,
 }
 
 pub fn run_repl(args: &Args) -> Result<(), ReplError> {
-    let mut stdout = io::stdout().lock();
-    let mut stdin = io::stdin().lock();
+    let mut term = Term::stdout();
+    let Some(Subcommands::Interactive { show_hello }) = args.subcommands else {
+        unreachable!()
+    };
 
-    let mut line = String::new();
-    loop {
-        print!("> ");
-        stdout.flush()?;
-        stdin.read_line(&mut line)?;
-        println!("{}", line);
+    if show_hello {
+        term.write_line(HELLO_MESSAGE)?;
     }
+
+    loop {
+        term.write_all(b"> ")?;
+        let line = term.read_line()?;
+
+        if line.starts_with("/") {
+            run_cmd(&line);
+            continue;
+        }
+    }
+}
+
+pub fn run_cmd(cmd: &str) {
+
 }

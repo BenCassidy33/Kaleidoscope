@@ -12,7 +12,7 @@ pub struct Args {
 pub enum Subcommands {
     Interactive { 
         // Shows the hello message when starting the interactive repl
-        #[arg(long)]
+        #[arg(long, default_value_t = true)]
         show_hello: bool 
     },
 }
