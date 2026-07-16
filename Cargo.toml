@@ -17,7 +17,7 @@ bench = false
 
 [[bin]]
 name = "kaleidoscope"
-path = "src/main.rs"
+path = "src/bin/main.rs"
 bench = false
 
 [dev-dependencies]

@@ -2,6 +2,7 @@
 
 use clap::Parser;
 use kaleidoscope::{
+    Lambda, UnwrapExpressions, UnzipExpressions,
     args::{Args, Subcommands},
     repl::run_repl,
 };
@@ -25,11 +26,13 @@ fn main() -> miette::Result<()> {
     let input = r#"
 G := Lm.mX
 H := (Lx.G)Y
+Lm.GH
 "#;
 
-    let expressions = kaleidoscope::parse(input)
-        .collect::<Result<Vec<_>, _>>()?;
+    let (assignments, statements) = Lambda::parse(input).unzip_expressions()?;
+    let assignments = Lambda::generate_assignment_map(&statements);
 
-    let assignments = kaleidoscope::generate_assignment_map(&expressions);
+    dbg!(assignments, statements);
+
     Ok(())
 }
