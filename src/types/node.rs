@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{collections::HashMap, fmt::Display};
 
 use derive_more::IsVariant;
 
@@ -6,7 +6,7 @@ use crate::{
     VALID_LAMBDA_CHARACTERS, find_closing_delim,
     types::{
         ApplicationNode, CreatedAt, ParsingError, ReductionError, Span,
-        abstraction::AbstractionNode, node::Node::Application, variable::VariableNode,
+        abstraction::AbstractionNode, variable::VariableNode,
     },
 };
 
@@ -22,7 +22,7 @@ impl Display for Node {
         let s = match self {
             Node::Variable(variable_node) => variable_node.to_string(),
             Node::Abstraction(abstraction_node) => abstraction_node.to_string(),
-            Application(application_node) => application_node.to_string(),
+            Node::Application(application_node) => application_node.to_string(),
         };
 
         write!(f, "{}", s)
@@ -59,7 +59,7 @@ impl Node {
                 let sp = start..r.span().end;
                 let ap = ApplicationNode::new(Node::Abstraction(ab), r, sp);
 
-                return Ok(Application(ap));
+                return Ok(Node::Application(ap));
             }
 
             return Ok(Node::Abstraction(ab));
@@ -71,7 +71,7 @@ impl Node {
                 let sp = start..r.span().end;
                 let ap = ApplicationNode::new(Node::Variable(var), r, sp);
 
-                return Ok(Application(ap));
+                return Ok(Node::Application(ap));
             }
 
             return Ok(Node::Variable(var));
@@ -166,6 +166,34 @@ impl Node {
 
             Node::Abstraction(abstraction_node) => abstraction_node.reduce(with, bound),
             Node::Application(application_node) => application_node.reduce(with, bound),
+        }
+    }
+
+    pub fn replace_assignments(self, assignments: &HashMap<VariableNode, Node>) -> Node {
+        match self {
+            Node::Variable(ref variable_node) => {
+                if let Some(n) = assignments.get(variable_node) {
+                    return n.to_owned();
+                }
+
+                self
+            }
+
+            Node::Abstraction(mut abstraction_node) => {
+                abstraction_node.body =
+                    Box::new(abstraction_node.body.replace_assignments(assignments));
+
+                Node::Abstraction(abstraction_node)
+            }
+
+            Node::Application(mut application_node) => {
+                application_node.left =
+                    Box::new(application_node.left.replace_assignments(assignments));
+                application_node.right =
+                    Box::new(application_node.right.replace_assignments(assignments));
+
+                Node::Application(application_node)
+            }
         }
     }
 }

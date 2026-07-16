@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, hash::Hash};
 
 use getset::Getters;
 
@@ -7,12 +7,19 @@ use crate::{
     types::{CreatedAt, ParsingError, Span},
 };
 
-#[derive(Debug, Clone, Getters)]
+#[derive(Debug, Clone, Getters, Eq)]
 #[getset(get = "pub")]
 pub struct VariableNode {
     pub(crate) ident: char,
     pub(crate) subscript: Option<String>,
     pub(crate) span: Span,
+}
+
+impl Hash for VariableNode {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.ident.hash(state);
+        self.subscript.hash(state);
+    }
 }
 
 impl PartialEq<str> for VariableNode {

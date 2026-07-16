@@ -1,6 +1,5 @@
 use console::Term;
-use derive_more::Display;
-use std::io::{self, BufRead, Write};
+use std::io::{self, Write};
 use thiserror::Error;
 
 use crate::args::{Args, Subcommands};
@@ -37,6 +36,4 @@ pub fn run_repl(args: &Args) -> Result<(), ReplError> {
     }
 }
 
-pub fn run_cmd(cmd: &str) {
-
-}
+pub fn run_cmd(cmd: &str) {}

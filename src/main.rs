@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use clap::Parser;
 use kaleidoscope::{
     Lambda,
@@ -21,5 +23,21 @@ fn do_stuff() -> miette::Result<()> {
 }
 
 fn main() -> miette::Result<()> {
+
+    let mut assignments = HashMap::new();
+    let Lambda::Assignment { ident, body } = kaleidoscope::parse("G := Lm.m")? else {
+        unimplemented!();
+    };
+
+    assignments.insert(ident, body);
+
+    let Lambda::Statement { mut body } = kaleidoscope::parse("Lm.G")? else {
+        unimplemented!();
+    };
+
+    dbg!(&body.to_string());
+    body = body.replace_assignments(&assignments);
+    dbg!(&body.to_string());
+
     Ok(())
 }
