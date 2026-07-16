@@ -16,6 +16,7 @@ pub use variable::*;
 
 use crate::opts::{DefaultOpts, GetDefaultOpt, Opts};
 
+#[allow(dead_code)]
 pub struct NodeFormattingOptions {
     extra_delimiters: bool,
 }

@@ -76,7 +76,7 @@ where
     L: IntoIterator<Item = Lambda>,
     O: std::io::Write,
 {
-    let mut opts = Opts::create_default_options();
+    let opts = Opts::create_default_options();
     let lambdas: Vec<Lambda> = lambdas.into_iter().collect();
 
     let assignment_expressions: Vec<Lambda> = lambdas

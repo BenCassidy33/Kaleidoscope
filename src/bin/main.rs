@@ -4,7 +4,9 @@ use std::io::stdout;
 
 use clap::Parser;
 use kaleidoscope::{
-    Lambda, UnwrapExpressions, args::{Args, Subcommands}, repl::run_repl,
+    Lambda, UnwrapExpressions,
+    args::{Args, Subcommands},
+    repl::run_repl,
 };
 
 // TODO: Inline this for actual releases
@@ -29,12 +31,7 @@ kG
 "#;
 
     let expressions = Lambda::parse(input);
-    // let (assignments, statements) = Lambda::parse(input).unzip_expressions().unwrap();
-    // let assignments = Lambda::generate_assignment_map(&assignments);
-
-    kaleidoscope::interpreter::interpret(expressions.unwrap_expressions()?, &mut stdout());
-
-    // dbg!(assignments, statements);
+    kaleidoscope::interpreter::interpret(expressions.unwrap_expressions()?, &mut stdout())?;
 
     Ok(())
 }
