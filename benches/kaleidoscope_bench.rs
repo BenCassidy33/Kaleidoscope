@@ -4,7 +4,7 @@ macro_rules! benches {
     ($group:ident, $( $name:ident => $s:literal ),+ $(,)?) => {
         $(
             pub fn $name(c: &mut Criterion) {
-                assert!(kaleidoscope::parse($s).is_ok());
+                assert!(kaleidoscope::parse($s).collect::<Result<Vec<_>, _>>().is_ok());
                 c.bench_function(&format!("bench '{}'", $s), |b| {
                     b.iter(|| kaleidoscope::parse(black_box($s)))
                 });

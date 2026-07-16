@@ -48,6 +48,7 @@ impl From<(usize, usize)> for Span {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct CreatedAt {
     file: &'static str,
@@ -65,6 +66,12 @@ impl CreatedAt {
             line: loc.line(),
             column: loc.column()
         }
+    }
+}
+
+impl Default for CreatedAt {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

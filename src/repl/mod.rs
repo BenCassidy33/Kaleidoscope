@@ -36,4 +36,6 @@ pub fn run_repl(args: &Args) -> Result<(), ReplError> {
     }
 }
 
-pub fn run_cmd(cmd: &str) {}
+pub fn run_cmd(_cmd: &str) {
+    todo!()
+}

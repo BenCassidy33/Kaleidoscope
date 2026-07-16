@@ -1,10 +1,8 @@
-use std::collections::HashMap;
+#![allow(dead_code, unused_variables)]
 
 use clap::Parser;
 use kaleidoscope::{
-    Lambda,
     args::{Args, Subcommands},
-    generate_assignment_map,
     repl::run_repl,
 };
 
@@ -33,6 +31,5 @@ H := (Lx.G)Y
         .collect::<Result<Vec<_>, _>>()?;
 
     let assignments = kaleidoscope::generate_assignment_map(&expressions);
-
     Ok(())
 }

@@ -3,7 +3,7 @@ use std::{fmt::Display, hash::Hash};
 use getset::Getters;
 
 use crate::{
-    VALID_LAMBDA_CHARACTERS, find_closing_delim,
+    VALID_LAMBDA_CHARACTERS, utils::find_closing_delim,
     types::{CreatedAt, ParsingError, Span},
 };
 

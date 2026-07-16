@@ -3,7 +3,7 @@ use std::{collections::HashMap, fmt::Display};
 use derive_more::IsVariant;
 
 use crate::{
-    VALID_LAMBDA_CHARACTERS, find_closing_delim,
+    VALID_LAMBDA_CHARACTERS, utils::find_closing_delim,
     types::{
         ApplicationNode, CreatedAt, ParsingError, ReductionError, Span,
         abstraction::AbstractionNode, variable::VariableNode,
