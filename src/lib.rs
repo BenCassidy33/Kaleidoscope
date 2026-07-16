@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use std::os::raw;
+use std::collections::HashMap;
 
 use crate::types::{Node, ParsingError, VariableNode};
 
@@ -18,14 +18,17 @@ pub enum Lambda {
     Statement { body: Node },
 }
 
-pub fn parse<I: Into<String>>(input: I) -> impl Iterator<Item = Result<Lambda, ParsingError>> {
+pub fn parse<I>(input: I) -> impl Iterator<Item = Result<Lambda, ParsingError>>
+where
+    I: Into<String>,
+{
     let input = input.into();
 
     let mut lines = input.lines().peekable();
     let mut raw_exprs = Vec::new();
 
     while let Some(line) = lines.next() {
-        if line.starts_with("//") {
+        if line.starts_with("//") || line.is_empty() {
             continue;
         }
 
@@ -90,4 +93,23 @@ pub fn find_closing_delim<const N: usize>(
     }
 
     Err(count)
+}
+
+pub fn generate_assignment_map<'a, E>(expressions: E) -> Option<HashMap<VariableNode, Node>>
+where
+    E: IntoIterator<Item = &'a Lambda>,
+{
+    let mut map = HashMap::new();
+
+    for expression in expressions {
+        if let Lambda::Assignment { ident, body } = expression {
+            map.insert(ident.clone(), body.clone());
+        }
+    }
+
+    if map.is_empty() {
+        return None;
+    }
+
+    Some(map)
 }

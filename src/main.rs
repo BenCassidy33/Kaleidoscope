@@ -4,6 +4,7 @@ use clap::Parser;
 use kaleidoscope::{
     Lambda,
     args::{Args, Subcommands},
+    generate_assignment_map,
     repl::run_repl,
 };
 
@@ -23,17 +24,15 @@ fn do_stuff() -> miette::Result<()> {
 }
 
 fn main() -> miette::Result<()> {
-    // let mut assignments = HashMap::new();
-
     let input = r#"
-G := Lm.m
-    X
+G := Lm.mX
 H := (Lx.G)Y
 "#;
 
-    kaleidoscope::parse(input).for_each(|f| {
-        dbg!(f);
-    });
+    let expressions = kaleidoscope::parse(input)
+        .collect::<Result<Vec<_>, _>>()?;
+
+    let assignments = kaleidoscope::generate_assignment_map(&expressions);
 
     Ok(())
 }
