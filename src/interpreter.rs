@@ -1,8 +1,11 @@
-use miette::{Diagnostic, LabeledSpan, SourceSpan};
+use miette::{Diagnostic, SourceSpan};
 use thiserror::Error;
 
 use crate::{
-    Lambda, LambdaKind, invocations::InvocationError, opts::{CreateDefaultOpts, DefaultOpts, GetDefaultOpt, Opts}, types::{CreatedAt, Node, ReductionError},
+    Lambda, LambdaKind,
+    invocations::InvocationError,
+    opts::{CreateDefaultOpts, DefaultOpts, GetDefaultOpt, Opts},
+    types::{CreatedAt, Node, ReductionError},
 };
 
 #[derive(Clone, Error, Debug, Diagnostic)]
@@ -24,7 +27,7 @@ impl From<std::io::Error> for IterpertingError {
             src: "".to_string(),
             msg: Some(format!("std::io error! Error: {:?}", value)),
             error_span: (0..0).into(),
-            created_at: None
+            created_at: None,
         }
     }
 }
@@ -67,6 +70,7 @@ impl IterpertingError {
     }
 }
 
+// TODO: Standardize output format of results
 pub fn interpret<L, O>(lambdas: L, stdout: &mut O) -> Result<(), IterpertingError>
 where
     L: IntoIterator<Item = Lambda>,
@@ -83,7 +87,7 @@ where
 
     let assignments = Lambda::generate_assignment_map(&assignment_expressions);
 
-    'outer: for statement in lambdas {
+    for statement in lambdas {
         match statement.kind {
             LambdaKind::Assignment { .. } => {
                 if statement.invocations.is_some() {
@@ -95,25 +99,36 @@ where
                     .get_current_as::<bool>()
                     .unwrap()
                 {
-                    stdout.write_all(format!("{}\n", statement).as_bytes())?;
+                    writeln!(stdout, "(Variable Assignment) {}\n", statement)?;
                 }
             }
 
             LambdaKind::Statement { mut body } => {
-                if let Some(ref assignments) = assignments  {
-                    body = body.replace_assignments(assignments);
+                if opts
+                    .get_default_opt(&DefaultOpts::ShouldCaptureAllChanges)
+                    .get_current_as::<bool>()
+                    .unwrap()
+                {
+                    let old = body.clone();
+                    if let Some(ref assignments) = assignments {
+                        body = body.replace_assignments(assignments);
+                    }
+
+                    writeln!(stdout, "(Variable Substitutions) {} => {}", old, body)?;
+                } else {
+                    if let Some(ref assignments) = assignments {
+                        body = body.replace_assignments(assignments);
+                    }
                 }
 
-                if opts.get_default_opt(&DefaultOpts::ShouldCaptureAllChanges).get_current_as::<bool>().unwrap() {
-                    stdout.write_all(format!("{}\n", body.clone()).as_bytes())?;
-                }
+                let old = body.clone();
 
                 body = match body {
                     Node::Application(ap) => ap.reduce_self()?,
-                    _ => body
+                    _ => body,
                 };
 
-                stdout.write_all(format!("{}\n", body.clone()).as_bytes())?;
+                writeln!(stdout, "(Expression Reduction) {} => {}", old, body)?;
             }
 
             LambdaKind::StandaloneInvocation => {

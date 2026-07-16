@@ -5,14 +5,37 @@ use serde::Serialize;
 use thiserror::Error;
 
 pub mod abstraction;
+pub mod application;
 pub mod node;
 pub mod variable;
-pub mod application;
 
 pub use abstraction::*;
+pub use application::*;
 pub use node::*;
 pub use variable::*;
-pub use application::*;
+
+use crate::opts::{DefaultOpts, GetDefaultOpt, Opts};
+
+pub struct NodeFormattingOptions {
+    extra_delimiters: bool,
+}
+
+impl From<Opts> for NodeFormattingOptions {
+    fn from(value: Opts) -> Self {
+        let extra_delimiters =
+            value.get_default_opt_current::<bool>(&DefaultOpts::FormatWithExtraDelimiters);
+
+        Self {
+            extra_delimiters,
+        }
+    }
+}
+
+impl NodeFormattingOptions {
+    pub fn new(extra_delimiters: bool) -> Self {
+        Self { extra_delimiters }
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct Span {
@@ -54,7 +77,7 @@ impl From<(usize, usize)> for Span {
 pub struct CreatedAt {
     file: &'static str,
     line: u32,
-    column: u32
+    column: u32,
 }
 
 impl CreatedAt {
@@ -65,7 +88,7 @@ impl CreatedAt {
         Self {
             file: loc.file(),
             line: loc.line(),
-            column: loc.column()
+            column: loc.column(),
         }
     }
 }
@@ -86,7 +109,7 @@ pub struct ParsingError {
     #[label("{msg:?}")]
     error_span: SourceSpan,
 
-    created_at: Option<CreatedAt>
+    created_at: Option<CreatedAt>,
 }
 
 impl ParsingError {
@@ -94,13 +117,13 @@ impl ParsingError {
         src: S,
         msg: Option<S>,
         error_span: N,
-        created_at: Option<CreatedAt>
+        created_at: Option<CreatedAt>,
     ) -> ParsingError {
         ParsingError {
             src: src.into(),
             msg: msg.map(|f| f.into()),
             error_span: error_span.into(),
-            created_at
+            created_at,
         }
     }
 
@@ -108,17 +131,16 @@ impl ParsingError {
         src: S,
         open_delim: char,
         open_idx: usize,
-        created_at: Option<CreatedAt>
+        created_at: Option<CreatedAt>,
     ) -> Self {
         let s = src.into();
         ParsingError {
             error_span: (open_idx..s.len()).into(),
             src: s,
             msg: Some(format!("Missing closing delimiter for {open_delim}.")),
-            created_at
+            created_at,
         }
     }
-
 }
 
 #[derive(Clone, Error, Debug, Diagnostic)]
@@ -131,7 +153,7 @@ pub struct ReductionError {
     #[label("{msg:?}")]
     pub(crate) error_span: SourceSpan,
 
-    pub(crate) created_at: Option<CreatedAt>
+    pub(crate) created_at: Option<CreatedAt>,
 }
 
 impl ReductionError {
@@ -139,13 +161,13 @@ impl ReductionError {
         src: S,
         msg: Option<S>,
         error_span: N,
-        created_at: Option<CreatedAt>
+        created_at: Option<CreatedAt>,
     ) -> Self {
         Self {
             src: src.into(),
             msg: msg.map(|f| f.into()),
             error_span: error_span.into(),
-            created_at
+            created_at,
         }
     }
 }

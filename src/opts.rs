@@ -1,6 +1,6 @@
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::Value;
-use std::{collections::HashMap};
+use std::collections::HashMap;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OptEntry {
@@ -66,6 +66,7 @@ pub trait CreateDefaultOpts {
 pub trait GetDefaultOpt {
     fn get_default_opt(&self, opt: &DefaultOpts) -> &OptEntry;
     fn get_default_opt_mut(&mut self, opt: &DefaultOpts) -> &mut OptEntry;
+    fn get_default_opt_current<T: DeserializeOwned>(&self, opt: &DefaultOpts) -> T;
 }
 
 macro_rules! create_default_opts {
@@ -93,7 +94,6 @@ macro_rules! create_default_opts {
     };
 }
 
-
 impl std::fmt::Display for DefaultOpts {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:?}", self)
@@ -102,15 +102,26 @@ impl std::fmt::Display for DefaultOpts {
 
 impl GetDefaultOpt for Opts {
     fn get_default_opt(&self, opt: &DefaultOpts) -> &OptEntry {
-        self.get(&opt.to_string()).expect("Failed to get a default key!")
+        self.get(&opt.to_string())
+            .expect(&format!("Failed to get a default key! Key: {:?}", opt))
     }
 
     fn get_default_opt_mut(&mut self, opt: &DefaultOpts) -> &mut OptEntry {
-        self.get_mut(&opt.to_string()).expect("Failed to get a default key!")
+        self.get_mut(&opt.to_string())
+            .expect(&format!("Failed to get a default key! Key: {:?}", opt))
+    }
+
+    fn get_default_opt_current<T: DeserializeOwned>(&self, key: &DefaultOpts) -> T {
+        let opt = self.get_default_opt(key);
+        opt.get_current_as::<T>().expect(&format!(
+            "Default opt not of expected type. Key: {:?}, Value: {:?}",
+            key, opt
+        ))
     }
 }
 
 create_default_opts! {
     ShouldPrintEveryLine : [true, false] => true,
     ShouldCaptureAllChanges : [true, false] => true,
+    FormatWithExtraDelimiters : [true, false] => true,
 }

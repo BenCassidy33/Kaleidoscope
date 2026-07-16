@@ -27,7 +27,18 @@ impl From<ApplicationNode> for Node {
 
 impl Display for ApplicationNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "({})({})", self.left, self.right)
+        match (self.left.as_ref(), self.right.as_ref()) {
+            (Node::Variable(_), Node::Variable(_)) => write!(f, "{}{}", self.left, self.right),
+            (_, Node::Variable(_)) => write!(f, "({}){}", self.left, self.right),
+            (Node::Variable(_), _) => write!(f, "{}({})", self.left, self.right),
+
+            (Node::Application(_), Node::Application(_))
+            | (Node::Abstraction(_), Node::Abstraction(_)) => {
+                write!(f, "({})({})", self.left, self.right)
+            }
+
+            _ => write!(f, "{}{}", self.left, self.right),
+        }
     }
 }
 

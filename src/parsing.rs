@@ -1,7 +1,7 @@
 use serde::Serialize;
 
 use crate::{
-    invocations::{self, Invocation},
+    invocations::Invocation,
     types::{Node, ParsingError, VariableNode},
 };
 use std::{collections::HashMap, fmt::Display};
@@ -15,13 +15,15 @@ pub struct Lambda {
 impl Display for Lambda {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.kind {
-            LambdaKind::Assignment { ref ident, ref body } => write!(f, "{} := {}", ident.to_string(), body.to_string()),
-            LambdaKind::Statement { ref body } => write!(f, "{}", body.to_string()),
-            LambdaKind::StandaloneInvocation => todo!()
+            LambdaKind::Assignment {
+                ref ident,
+                ref body,
+            } => write!(f, "{} := {}", ident, body),
+            LambdaKind::Statement { ref body } => write!(f, "{}", body),
+            LambdaKind::StandaloneInvocation => todo!(),
         }
     }
 }
-
 
 #[derive(Debug, Serialize, Clone)]
 pub enum LambdaKind {
@@ -104,7 +106,6 @@ impl Lambda {
         let mut map = HashMap::new();
 
         for expression in expressions {
-            dbg!(expression);
             if let LambdaKind::Assignment { ident, body } = &expression.kind {
                 map.insert(ident.clone(), body.clone());
             }

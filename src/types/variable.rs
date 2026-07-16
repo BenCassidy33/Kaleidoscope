@@ -4,7 +4,7 @@ use getset::Getters;
 use serde::Serialize;
 
 use crate::{
-    VALID_LAMBDA_CHARACTERS, types::{CreatedAt, Node, ParsingError, Span}, utils::find_closing_delim,
+    VALID_LAMBDA_CHARACTERS, types::{CreatedAt, Node, NodeFormattingOptions, ParsingError, Span}, utils::find_closing_delim,
 };
 
 #[derive(Debug, Clone, Getters, Eq, Serialize)]
