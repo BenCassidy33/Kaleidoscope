@@ -15,6 +15,9 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.150"
 thiserror = "2.0.18"
 
+[dev-dependencies]
+criterion = "0.3"
+
 [lib]
 bench = false
 
@@ -23,9 +26,17 @@ name = "kaleidoscope"
 path = "src/bin/main.rs"
 bench = false
 
-[dev-dependencies]
-criterion = "0.3"
-
 [[bench]]
 name = "kaleidoscope_bench"
 harness = false
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+debug = false
+strip = true
+debug-assertions = false
+overflow-checks = false
+
+# this might need to be removed for error reporting
+panic = "abort"
