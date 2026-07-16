@@ -2,6 +2,9 @@
 name = "kaleidoscope"
 version = "0.1.0"
 edition = "2024"
+description = "A Lambda calculus parser and interperter."
+license = "MIT"
+repository = "https://github.com/BenCassidy33/Kaleidoscope"
 
 [dependencies]
 anyhow = "1.0.103"
@@ -21,6 +24,7 @@ criterion = "0.3"
 
 [lib]
 bench = false
+crate-type = ["cdylib", "rlib"]
 
 [[bin]]
 name = "kaleidoscope"
