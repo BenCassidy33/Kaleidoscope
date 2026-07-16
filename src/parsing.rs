@@ -2,7 +2,13 @@ use crate::types::{Node, ParsingError, VariableNode};
 use std::collections::HashMap;
 
 #[derive(Debug)]
-pub enum Lambda {
+pub struct Lambda {
+    kind: LambdaKind,
+    calls: Option<Vec<String>>,
+}
+
+#[derive(Debug)]
+pub enum LambdaKind {
     Assignment { ident: VariableNode, body: Node },
     Statement { body: Node },
 }
@@ -13,7 +19,6 @@ impl Lambda {
         I: Into<String>,
     {
         let input = input.into();
-
         let mut lines = input.lines().peekable();
         let mut raw_exprs = Vec::new();
 
@@ -33,21 +38,49 @@ impl Lambda {
             raw_exprs.push(line);
         }
 
-        raw_exprs.into_iter().map(|expr| {
+        raw_exprs.into_iter().map(|mut expr| {
+            let mut calls = Vec::new();
+
+            while let Some(end_idx) = expr.find('!') {
+                let call = if let Some(start_idx) = expr[..end_idx].rfind(|c: char| c.is_ascii_whitespace()) {
+                    &expr[start_idx..end_idx]
+                } else {
+                    &expr[..end_idx]
+                };
+
+                calls.push(call.to_uppercase());
+                expr = expr[end_idx + 1..].trim().to_string();
+            }
+
             if let Some(idx) = expr.find(":=") {
                 let (raw_ident, raw_body) = expr.split_once(":=").unwrap();
                 let ident = VariableNode::parse_str(
                     &raw_ident.replace(|c: char| c.is_ascii_whitespace(), ""),
                     0,
                 )?;
+
                 let body = Node::parse_str(
                     &raw_body.replace(|c: char| c.is_ascii_whitespace(), ""),
                     idx + 2,
                 )?;
 
-                Ok(Self::Assignment { ident, body })
+                Ok(Lambda {
+                    kind: LambdaKind::Assignment { ident, body },
+                    calls: if calls.is_empty() {
+                        None
+                    } else {
+                        Some(calls)
+                    },
+                })
             } else {
-                Node::parse_str(&expr, 0).map(|e| Self::Statement { body: e })
+                Ok(Lambda {
+                    kind: Node::parse_str(&expr, 0).map(|e| LambdaKind::Statement { body: e })?,
+                    calls: if calls.is_empty() {
+                        None
+                    } else {
+                        Some(calls)
+                    },
+                })
             }
         })
     }
@@ -59,7 +92,8 @@ impl Lambda {
         let mut map = HashMap::new();
 
         for expression in expressions {
-            if let Self::Assignment { ident, body } = expression {
+            dbg!(expression);
+            if let LambdaKind::Assignment { ident, body } = &expression.kind {
                 map.insert(ident.clone(), body.clone());
             }
         }
@@ -69,17 +103,6 @@ impl Lambda {
         }
 
         Some(map)
-    }
-
-    #[inline]
-    pub fn unwrap_expressions<I>(iter: I) -> Result<(Vec<Lambda>, Vec<Lambda>), ParsingError>
-    where
-        I: Iterator<Item = Result<Self, ParsingError>>,
-    {
-        Ok(iter
-            .collect::<Result<Vec<_>, _>>()?
-            .into_iter()
-            .partition(|l| matches!(l, Lambda::Assignment { .. })))
     }
 }
 
@@ -117,6 +140,6 @@ where
         Ok(self
             .collect::<Result<Vec<_>, _>>()?
             .into_iter()
-            .partition(|l| matches!(l, Lambda::Assignment { .. })))
+            .partition(|l| matches!(l.kind, LambdaKind::Assignment { .. })))
     }
 }
