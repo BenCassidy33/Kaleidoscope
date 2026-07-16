@@ -4,15 +4,26 @@ use crate::{
     invocations::{self, Invocation},
     types::{Node, ParsingError, VariableNode},
 };
-use std::collections::HashMap;
+use std::{collections::HashMap, fmt::Display};
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct Lambda {
     pub(crate) kind: LambdaKind,
     pub(crate) invocations: Option<Vec<Invocation>>,
 }
 
-#[derive(Debug, Serialize)]
+impl Display for Lambda {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.kind {
+            LambdaKind::Assignment { ref ident, ref body } => write!(f, "{} := {}", ident.to_string(), body.to_string()),
+            LambdaKind::Statement { ref body } => write!(f, "{}", body.to_string()),
+            LambdaKind::StandaloneInvocation => todo!()
+        }
+    }
+}
+
+
+#[derive(Debug, Serialize, Clone)]
 pub enum LambdaKind {
     Assignment { ident: VariableNode, body: Node },
     Statement { body: Node },

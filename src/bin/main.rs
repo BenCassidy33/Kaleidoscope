@@ -1,10 +1,10 @@
 #![allow(dead_code, unused_variables)]
 
+use std::io::stdout;
+
 use clap::Parser;
 use kaleidoscope::{
-    Lambda, UnzipExpressions,
-    args::{Args, Subcommands},
-    repl::run_repl,
+    Lambda, UnwrapExpressions, UnzipExpressions, args::{Args, Subcommands}, repl::run_repl,
 };
 
 // TODO: Inline this for actual releases
@@ -25,16 +25,15 @@ fn do_stuff() -> miette::Result<()> {
 fn main() -> miette::Result<()> {
     let input = r#"
 G := Lm.mX
-H := (Lx.G)Y
-
-print!(Lm.GH)
 "#;
 
     let expressions = Lambda::parse(input);
-    let (assignments, statements) = Lambda::parse(input).unzip_expressions().unwrap();
-    let assignments = Lambda::generate_assignment_map(&assignments);
+    // let (assignments, statements) = Lambda::parse(input).unzip_expressions().unwrap();
+    // let assignments = Lambda::generate_assignment_map(&assignments);
 
-    dbg!(assignments, statements);
+    kaleidoscope::interpreter::interpret(expressions.unwrap_expressions()?, &mut stdout());
+
+    // dbg!(assignments, statements);
 
     Ok(())
 }

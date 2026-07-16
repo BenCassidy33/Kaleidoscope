@@ -1,7 +1,13 @@
+use std::fmt::Write;
+
 use miette::{Diagnostic, SourceSpan};
 use thiserror::Error;
 
-use crate::{Lambda, LambdaKind, types::CreatedAt};
+use crate::{
+    Lambda, LambdaKind,
+    opts::{CreateDefaultOpts, DefaultOpts, GetDefaultOpt, Opts},
+    types::CreatedAt,
+};
 
 #[derive(Clone, Error, Debug, Diagnostic)]
 #[error("Parsing Error")]
@@ -32,12 +38,53 @@ impl IterpertingError {
     }
 }
 
-pub fn interpret<L>(lambdas: L)
+pub fn interpret<L, O>(lambdas: L, out: &mut O)
 where
-    L: Iterator<Item = Lambda>,
+    L: IntoIterator<Item = Lambda>,
+    O: std::io::Write,
 {
-    let (assignments, statements): (Vec<Lambda>, Vec<Lambda>) =
-        lambdas.partition(|f| matches!(f.kind, LambdaKind::Assignment { .. }));
+    let mut opts = Opts::create_default_options();
+    let lambdas: Vec<Lambda> = lambdas.into_iter().collect();
 
-    let assignments = Lambda::generate_assignment_map(&assignments);
+    let assignment_expressions: Vec<Lambda> = lambdas
+        .iter()
+        .filter(|f| matches!(f.kind, LambdaKind::Assignment { .. }))
+        .cloned()
+        .collect();
+
+    let assignments = Lambda::generate_assignment_map(&assignment_expressions);
+
+    'outer: for statement in lambdas {
+        match statement.kind {
+            LambdaKind::Assignment { .. } => {
+                if statement.invocations.is_some() {
+                    todo!();
+                }
+
+                if opts
+                    .get_default_opt(&DefaultOpts::ShouldPrintEveryLine)
+                    .get_current_as::<bool>()
+                    .unwrap()
+                {
+                    out.write_all(format!("{}", statement).as_bytes()).unwrap();
+                }
+            }
+
+            LambdaKind::Statement { body } => {
+                todo!("")
+            }
+
+            LambdaKind::StandaloneInvocation => {
+                for invocation in statement
+                    .invocations
+                    .expect("Standalone Inovaction with no invocations!")
+                {
+                    invocation.invoke();
+                    todo!("Invocation Error!");
+                }
+
+                todo!()
+            }
+        }
+    }
 }

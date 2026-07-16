@@ -1,15 +1,49 @@
 use enum_iterator::{Sequence, all};
+use miette::{Diagnostic, SourceSpan};
 use serde::Serialize;
+use thiserror::Error;
 
 use crate::{
     types::{CreatedAt, ParsingError, Span},
     utils::find_closing_delim,
 };
 
-#[derive(Debug, Serialize, Sequence)]
+#[derive(Clone, Error, Debug, Diagnostic)]
+#[error("Parsing Error")]
+pub struct InvocationError {
+    #[source_code]
+    src: String,
+    msg: Option<String>,
+
+    #[label("{msg:?}")]
+    error_span: SourceSpan,
+
+    created_at: Option<CreatedAt>
+}
+
+impl InvocationError {
+    pub fn new<S: Into<String>, N: Into<SourceSpan>>(
+        src: S,
+        msg: Option<S>,
+        error_span: N,
+        created_at: Option<CreatedAt>
+    ) -> Self {
+        Self {
+            src: src.into(),
+            msg: msg.map(|f| f.into()),
+            error_span: error_span.into(),
+            created_at
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Sequence, Clone)]
 pub enum BuiltinInvocations {
     Print,
     Json,
+
+    SetOpt,
+    Define
 }
 
 impl TryFrom<&str> for BuiltinInvocations {
@@ -24,7 +58,7 @@ impl TryFrom<&str> for BuiltinInvocations {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub enum InvocationKind {
     Builtin(BuiltinInvocations),
     Custom(String),
@@ -40,7 +74,7 @@ impl From<&str> for InvocationKind {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Clone)]
 pub struct Invocation {
     pub(crate) kind: InvocationKind,
     pub(crate) ident: String,
@@ -90,5 +124,9 @@ impl Invocation {
         }
 
         Ok((invocations, expr))
+    }
+
+    pub fn invoke(&self) -> Result<(), InvocationError> {
+        todo!()
     }
 }
