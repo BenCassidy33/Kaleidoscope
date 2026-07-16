@@ -11,3 +11,18 @@ derive_more = { version = "2.1.1", features = ["full"] }
 getset = "0.1.7"
 miette = { version = "7.6.0", features = ["fancy"] }
 thiserror = "2.0.18"
+
+[lib]
+bench = false
+
+[[bin]]
+name = "kaleidoscope"
+path = "src/main.rs"
+bench = false
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "kaleidoscope_bench"
+harness = false

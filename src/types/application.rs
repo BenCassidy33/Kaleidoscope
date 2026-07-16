@@ -5,7 +5,7 @@ use getset::Getters;
 use crate::{
     VALID_LAMBDA_CHARACTERS,
     types::{
-        CreatedAt, ParsingError, Span, abstraction::AbstractionNode, node::Node,
+        CreatedAt, ParsingError, ReductionError, Span, abstraction::AbstractionNode, node::Node,
         variable::VariableNode,
     },
 };
@@ -16,6 +16,12 @@ pub struct ApplicationNode {
     pub(crate) left: Box<Node>,
     pub(crate) right: Box<Node>,
     pub(crate) span: Span,
+}
+
+impl From<ApplicationNode> for Node {
+    fn from(val: ApplicationNode) -> Self {
+        Node::Application(val)
+    }
 }
 
 impl Display for ApplicationNode {
@@ -93,5 +99,52 @@ impl ApplicationNode {
         }
 
         Node::Application(self)
+    }
+
+    pub fn reduce(
+        mut self,
+        with: Node,
+        bound: Option<&VariableNode>,
+    ) -> Result<Node, ReductionError> {
+        if let Some(bound) = bound {
+            match *self.left {
+                Node::Variable(ref variable_node) => {
+                    if variable_node == bound {
+                        self.left = Box::new(with.clone())
+                    }
+                }
+
+                Node::Abstraction(abstraction_node) => {
+                    self.left = Box::new(abstraction_node.reduce(with.clone(), Some(bound))?)
+                }
+
+                Node::Application(application_node) => {
+                    self.left = Box::new(application_node.reduce(with.clone(), Some(bound))?)
+                }
+            };
+
+            match *self.right {
+                Node::Variable(ref variable_node) => {
+                    if variable_node == bound {
+                        self.right = Box::new(with)
+                    }
+                }
+
+                Node::Abstraction(abstraction_node) => {
+                    self.right = Box::new(abstraction_node.reduce(with, Some(bound))?)
+                }
+
+                Node::Application(application_node) => {
+                    self.right = Box::new(application_node.reduce(with, Some(bound))?)
+                }
+            };
+
+            return Ok(self.into());
+        }
+
+        self.left = Box::new(self.left.reduce(with.clone(), bound)?);
+        self.right = Box::new(self.right.reduce(with, bound)?);
+
+        Ok(self.into())
     }
 }

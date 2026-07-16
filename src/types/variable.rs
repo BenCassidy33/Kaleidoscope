@@ -7,7 +7,7 @@ use crate::{
     types::{CreatedAt, ParsingError, Span},
 };
 
-#[derive(Debug, Clone, Getters, PartialEq)]
+#[derive(Debug, Clone, Getters)]
 #[getset(get = "pub")]
 pub struct VariableNode {
     pub(crate) ident: char,
@@ -48,6 +48,12 @@ impl PartialEq<&str> for VariableNode {
         };
 
         s == *other
+    }
+}
+
+impl PartialEq<VariableNode> for VariableNode {
+    fn eq(&self, other: &VariableNode) -> bool {
+        self.ident == other.ident && self.subscript == other.subscript
     }
 }
 
@@ -104,16 +110,38 @@ impl VariableNode {
                 Some(CreatedAt::new()),
             ))?,
 
-            1 => Ok(VariableNode::new(
-                s.chars().next().unwrap(),
-                None,
-                start,
-                false,
-            )),
+            1 => {
+                let ch = s.chars().next().unwrap();
+
+                if !ch.is_alphabetic() {
+                    Err(ParsingError::new(
+                        s,
+                        Some("Invalid Variable Identifier"),
+                        0..s.len(),
+                        Some(CreatedAt::new()),
+                    ))?
+                }
+
+                Ok(VariableNode::new(
+                    s.chars().next().unwrap(),
+                    None,
+                    start,
+                    false,
+                ))
+            }
 
             n => {
                 let mut chars = s.chars().enumerate();
                 let (_, base) = chars.next().unwrap();
+
+                if !base.is_alphabetic() {
+                    Err(ParsingError::new(
+                        s,
+                        Some("Invalid Variable Identifier"),
+                        0..s.len(),
+                        Some(CreatedAt::new()),
+                    ))?
+                }
 
                 let (_, delim) = chars.next().ok_or_else(|| {
                     ParsingError::new(
@@ -129,6 +157,15 @@ impl VariableNode {
                 }
 
                 if let Some((idx, next)) = chars.next() {
+                    if !next.is_alphanumeric() && !['{', '}'].contains(&next) {
+                        Err(ParsingError::new(
+                            s,
+                            Some("Invalid Variable Identifier"),
+                            0..s.len(),
+                            Some(CreatedAt::new()),
+                        ))?
+                    }
+
                     if next == '{' {
                         let range = find_closing_delim(&s[idx..], ['{'], '}').map_err(|_| {
                             ParsingError::new(
@@ -166,4 +203,7 @@ impl VariableNode {
             }
         }
     }
+
+    // pub fn reduce(self, with: Node) -> Result<Node, ReductionError> {
+    // }
 }

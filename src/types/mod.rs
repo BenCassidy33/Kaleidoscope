@@ -126,6 +126,18 @@ pub struct ReductionError {
     created_at: Option<CreatedAt>
 }
 
-pub trait Reducable: Sized {
-    fn reduce(self, other: &Node) -> Result<Node, ReductionError>;
+impl ReductionError {
+    pub fn new<S: Into<String>, N: Into<SourceSpan>>(
+        src: S,
+        msg: Option<S>,
+        error_span: N,
+        created_at: Option<CreatedAt>
+    ) -> Self {
+        Self {
+            src: src.into(),
+            msg: msg.map(|f| f.into()),
+            error_span: error_span.into(),
+            created_at
+        }
+    }
 }

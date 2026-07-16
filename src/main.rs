@@ -3,7 +3,6 @@ use kaleidoscope::{
     Lambda,
     args::{Args, Subcommands},
     repl::run_repl,
-    types::node::Node,
 };
 
 // TODO: Inline this for actual releases
@@ -22,31 +21,5 @@ fn do_stuff() -> miette::Result<()> {
 }
 
 fn main() -> miette::Result<()> {
-    let Lambda::Statement { mut body } = kaleidoscope::parse("Lm.mx")? else {
-        unreachable!()
-    };
-
-    dbg!(&body.to_string());
-
-    body = body.replace(
-        &|(node, bound)| match node {
-            Node::Variable(var) => {
-                if let Some(bound) = bound
-                    && bound.ident() == var.ident()
-                {
-                    return true;
-                }
-
-                false
-            }
-
-            _ => false,
-        },
-        None,
-        Node::parse_str("x", 0)?,
-    );
-
-    dbg!(&body.to_string());
-
     Ok(())
 }

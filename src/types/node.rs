@@ -5,11 +5,8 @@ use derive_more::IsVariant;
 use crate::{
     VALID_LAMBDA_CHARACTERS, find_closing_delim,
     types::{
-        CreatedAt, ParsingError, Span,
-        abstraction::AbstractionNode,
-        application::{self, ApplicationNode},
-        node::Node::Application,
-        variable::VariableNode,
+        ApplicationNode, CreatedAt, ParsingError, ReductionError, Span,
+        abstraction::AbstractionNode, node::Node::Application, variable::VariableNode,
     },
 };
 
@@ -154,6 +151,21 @@ impl Node {
 
         if matched && !all.contains(&self) {
             all.push(self);
+        }
+    }
+
+    pub fn reduce(self, with: Node, bound: Option<&VariableNode>) -> Result<Node, ReductionError> {
+        match self {
+            Node::Variable(ref variable_node) => {
+                if bound.is_none_or(|bound| bound == variable_node) {
+                    return Ok(with);
+                }
+
+                Ok(self)
+            }
+
+            Node::Abstraction(abstraction_node) => abstraction_node.reduce(with, bound),
+            Node::Application(application_node) => application_node.reduce(with, bound),
         }
     }
 }

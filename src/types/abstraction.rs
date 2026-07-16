@@ -1,10 +1,11 @@
 use std::fmt::Display;
-
 use getset::Getters;
-
 use crate::{
-    LAMBDA_CHAR, VALID_LAMBDA_CHARACTERS, find_closing_delim,
-    types::{CreatedAt, ParsingError, Span, node::Node, variable::VariableNode},
+    LAMBDA_CHAR, VALID_LAMBDA_CHARACTERS,
+    types::{
+        CreatedAt, ParsingError, ReductionError, Span, node::Node,
+        variable::VariableNode,
+    },
 };
 
 #[derive(Debug, Getters, PartialEq, Clone)]
@@ -106,14 +107,6 @@ impl AbstractionNode {
             return with;
         }
 
-        // replace entire thing if body is just one variable and that is the variable that is being
-        // looked for
-        // if let Node::Variable(var) = self.body().as_ref()
-        //     && f((self.body(), Some(var)))
-        // {
-        //     return with;
-        // }
-
         if f((self.body(), bound)) {
             return match *self.body {
                 Node::Variable(_) => with,
@@ -131,5 +124,52 @@ impl AbstractionNode {
         }
 
         Node::Abstraction(self)
+    }
+
+    pub fn reduce(
+        self,
+        with: Node,
+        mut bound: Option<&VariableNode>,
+    ) -> Result<Node, ReductionError> {
+        if bound.is_none() {
+            let Node::Variable(ref b) = *self.bound else {
+                unreachable!();
+            };
+
+            bound = Some(Box::leak(Box::new(b.clone())));
+        }
+
+        dbg!(&with, &bound);
+        match *self.body {
+            Node::Variable(ref variable_node) => {
+                if bound.is_some_and(|bound| bound == variable_node) {
+                    return Ok(with);
+                }
+
+                let s = self.to_string();
+                let l = s.len();
+                Err(ReductionError::new(
+                    s,
+                    Some(
+                        "Abstraction's bounding variable does not appear in its body. This is currently an error".to_string(),
+                    ),
+                    0..l,
+                    Some(CreatedAt::new()),
+                ))
+            }
+
+            Node::Abstraction(abstraction_node) => abstraction_node.reduce(with, bound),
+            Node::Application(application) => {
+                if let Some(bound) = bound {
+                    application.reduce(with, Some(bound))
+                } else {
+                    let Node::Variable(b) = self.bound.as_ref() else {
+                        unreachable!("Extend syntax not currently supported.")
+                    };
+
+                    application.reduce(with, Some(b))
+                }
+            }
+        }
     }
 }
