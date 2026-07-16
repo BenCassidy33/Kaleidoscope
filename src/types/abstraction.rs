@@ -17,6 +17,12 @@ pub struct AbstractionNode {
     pub(crate) span: Span,
 }
 
+impl From<AbstractionNode> for Node {
+    fn from(value: AbstractionNode) -> Self {
+        Node::Abstraction(value)
+    }
+}
+
 impl Display for AbstractionNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}{}.{}", LAMBDA_CHAR, self.bound, self.body)
@@ -140,7 +146,6 @@ impl AbstractionNode {
             bound = Some(Box::leak(Box::new(b.clone())));
         }
 
-        dbg!(&with, &bound);
         match *self.body {
             Node::Variable(ref variable_node) => {
                 if bound.is_some_and(|bound| bound == variable_node) {

@@ -24,7 +24,8 @@ fn do_stuff() -> miette::Result<()> {
 
 fn main() -> miette::Result<()> {
     let input = r#"
-G := Lm.mX
+G := Lm.mx
+k(Lx.G)
 "#;
 
     let expressions = Lambda::parse(input);

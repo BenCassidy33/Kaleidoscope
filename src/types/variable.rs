@@ -4,8 +4,7 @@ use getset::Getters;
 use serde::Serialize;
 
 use crate::{
-    VALID_LAMBDA_CHARACTERS, utils::find_closing_delim,
-    types::{CreatedAt, ParsingError, Span},
+    VALID_LAMBDA_CHARACTERS, types::{CreatedAt, Node, ParsingError, Span}, utils::find_closing_delim,
 };
 
 #[derive(Debug, Clone, Getters, Eq, Serialize)]
@@ -14,6 +13,12 @@ pub struct VariableNode {
     pub(crate) ident: char,
     pub(crate) subscript: Option<String>,
     pub(crate) span: Span,
+}
+
+impl From<VariableNode> for Node {
+    fn from(val: VariableNode) -> Self {
+        Node::Variable(val)
+    }
 }
 
 impl Hash for VariableNode {
@@ -101,7 +106,7 @@ impl VariableNode {
     }
 
     pub fn parse_str(s: &str, start: usize) -> Result<Self, ParsingError> {
-        if s.contains(VALID_LAMBDA_CHARACTERS) {
+        if s.starts_with(VALID_LAMBDA_CHARACTERS) {
             Err(ParsingError::new(
                 s,
                 Some("Variable contains a lambda character"),

@@ -148,4 +148,13 @@ impl ApplicationNode {
 
         Ok(self.into())
     }
+
+    pub fn reduce_self(self) -> Result<Node, ReductionError> {
+        match (self.left.as_ref(), self.right.as_ref()) {
+            (Node::Abstraction(ab), other) => ab.clone().reduce(other.clone(), None),
+            (other, Node::Abstraction(ab)) => ab.clone().reduce(other.clone(), None),
+
+            _ => Ok(self.into()),
+        }
+    }
 }

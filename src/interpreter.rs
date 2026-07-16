@@ -1,10 +1,8 @@
-use std::fmt::Write;
-
-use miette::{Diagnostic, SourceSpan};
+use miette::{Diagnostic, LabeledSpan, SourceSpan};
 use thiserror::Error;
 
 use crate::{
-    Lambda, LambdaKind, invocations::InvocationError, opts::{CreateDefaultOpts, DefaultOpts, GetDefaultOpt, Opts}, types::CreatedAt,
+    Lambda, LambdaKind, invocations::InvocationError, opts::{CreateDefaultOpts, DefaultOpts, GetDefaultOpt, Opts}, types::{CreatedAt, Node, ReductionError},
 };
 
 #[derive(Clone, Error, Debug, Diagnostic)]
@@ -20,13 +18,35 @@ pub struct IterpertingError {
     created_at: Option<CreatedAt>,
 }
 
+impl From<std::io::Error> for IterpertingError {
+    fn from(value: std::io::Error) -> Self {
+        Self {
+            src: "".to_string(),
+            msg: Some(format!("std::io error! Error: {:?}", value)),
+            error_span: (0..0).into(),
+            created_at: None
+        }
+    }
+}
+
 impl From<InvocationError> for IterpertingError {
     fn from(val: InvocationError) -> Self {
         IterpertingError {
             src: val.src,
             msg: val.msg,
             error_span: val.error_span,
-            created_at: val.created_at
+            created_at: val.created_at,
+        }
+    }
+}
+
+impl From<ReductionError> for IterpertingError {
+    fn from(val: ReductionError) -> IterpertingError {
+        IterpertingError {
+            src: val.src,
+            msg: val.msg,
+            error_span: val.error_span,
+            created_at: val.created_at,
         }
     }
 }
@@ -47,7 +67,7 @@ impl IterpertingError {
     }
 }
 
-pub fn interpret<L, O>(lambdas: L, out: &mut O) -> Result<(), IterpertingError>
+pub fn interpret<L, O>(lambdas: L, stdout: &mut O) -> Result<(), IterpertingError>
 where
     L: IntoIterator<Item = Lambda>,
     O: std::io::Write,
@@ -75,12 +95,25 @@ where
                     .get_current_as::<bool>()
                     .unwrap()
                 {
-                    out.write_all(format!("{}", statement).as_bytes()).unwrap();
+                    stdout.write_all(format!("{}\n", statement).as_bytes())?;
                 }
             }
 
-            LambdaKind::Statement { body } => {
-                todo!("")
+            LambdaKind::Statement { mut body } => {
+                if let Some(ref assignments) = assignments  {
+                    body = body.replace_assignments(assignments);
+                }
+
+                if opts.get_default_opt(&DefaultOpts::ShouldCaptureAllChanges).get_current_as::<bool>().unwrap() {
+                    stdout.write_all(format!("{}\n", body.clone()).as_bytes())?;
+                }
+
+                body = match body {
+                    Node::Application(ap) => ap.reduce_self()?,
+                    _ => body
+                };
+
+                stdout.write_all(format!("{}\n", body.clone()).as_bytes())?;
             }
 
             LambdaKind::StandaloneInvocation => {

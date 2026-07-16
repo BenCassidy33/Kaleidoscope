@@ -125,13 +125,13 @@ impl ParsingError {
 #[error("Parsing Error")]
 pub struct ReductionError {
     #[source_code]
-    src: String,
-    msg: Option<String>,
+    pub(crate) src: String,
+    pub(crate) msg: Option<String>,
 
     #[label("{msg:?}")]
-    error_span: SourceSpan,
+    pub(crate) error_span: SourceSpan,
 
-    created_at: Option<CreatedAt>
+    pub(crate) created_at: Option<CreatedAt>
 }
 
 impl ReductionError {

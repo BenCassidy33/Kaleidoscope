@@ -72,7 +72,7 @@ macro_rules! create_default_opts {
     ($($ident:ident : [$($value_opt:literal),+ $(,)?] => $default:literal),+ $(,)?) => {
         #[derive(Debug)]
         pub enum DefaultOpts {
-            $($ident)*
+            $($ident),*
         }
 
         impl CreateDefaultOpts for Opts {
@@ -112,4 +112,5 @@ impl GetDefaultOpt for Opts {
 
 create_default_opts! {
     ShouldPrintEveryLine : [true, false] => true,
+    ShouldCaptureAllChanges : [true, false] => true,
 }
