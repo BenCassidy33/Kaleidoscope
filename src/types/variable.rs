@@ -1,13 +1,14 @@
 use std::{fmt::Display, hash::Hash};
 
 use getset::Getters;
+use serde::Serialize;
 
 use crate::{
     VALID_LAMBDA_CHARACTERS, utils::find_closing_delim,
     types::{CreatedAt, ParsingError, Span},
 };
 
-#[derive(Debug, Clone, Getters, Eq)]
+#[derive(Debug, Clone, Getters, Eq, Serialize)]
 #[getset(get = "pub")]
 pub struct VariableNode {
     pub(crate) ident: char,

@@ -1,6 +1,7 @@
 use std::{collections::HashMap, fmt::Display};
 
 use derive_more::IsVariant;
+use serde::Serialize;
 
 use crate::{
     VALID_LAMBDA_CHARACTERS, utils::find_closing_delim,
@@ -10,7 +11,7 @@ use crate::{
     },
 };
 
-#[derive(Debug, IsVariant, PartialEq, Clone)]
+#[derive(Debug, IsVariant, PartialEq, Clone, Serialize)]
 pub enum Node {
     Variable(VariableNode),
     Abstraction(AbstractionNode),

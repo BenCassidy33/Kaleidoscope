@@ -4,7 +4,7 @@ use thiserror::Error;
 
 use crate::args::{Args, Subcommands};
 
-const HELLO_MESSAGE: &'static str = "Welcome to the Kaleidoscope repl. Use /help for help!";
+const HELLO_MESSAGE: &str = "Welcome to the Kaleidoscope repl. Use /help for help!";
 
 #[derive(Error, Debug)]
 pub enum ReplError {

@@ -1,6 +1,7 @@
 use std::panic::Location;
 
 use miette::{Diagnostic, SourceSpan};
+use serde::Serialize;
 use thiserror::Error;
 
 pub mod abstraction;
@@ -13,7 +14,7 @@ pub use node::*;
 pub use variable::*;
 pub use application::*;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 pub struct Span {
     start: usize,
     end: usize,

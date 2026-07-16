@@ -1,6 +1,7 @@
 use std::fmt::Display;
 
 use getset::Getters;
+use serde::Serialize;
 
 use crate::{
     VALID_LAMBDA_CHARACTERS,
@@ -10,7 +11,7 @@ use crate::{
     },
 };
 
-#[derive(Debug, Getters, PartialEq, Clone)]
+#[derive(Debug, Getters, PartialEq, Clone, Serialize)]
 #[getset(get = "pub")]
 pub struct ApplicationNode {
     pub(crate) left: Box<Node>,

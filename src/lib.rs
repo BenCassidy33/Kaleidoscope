@@ -3,7 +3,8 @@ pub mod repl;
 pub mod types;
 pub mod parsing;
 pub mod utils;
-pub mod interperter;
+pub mod interpreter;
+pub mod invocations;
 
 pub use parsing::*;
 

@@ -1,5 +1,6 @@
 use std::fmt::Display;
 use getset::Getters;
+use serde::Serialize;
 use crate::{
     LAMBDA_CHAR, VALID_LAMBDA_CHARACTERS,
     types::{
@@ -8,7 +9,7 @@ use crate::{
     },
 };
 
-#[derive(Debug, Getters, PartialEq, Clone)]
+#[derive(Debug, Getters, PartialEq, Clone, Serialize)]
 #[getset(get = "pub")]
 pub struct AbstractionNode {
     pub(crate) bound: Box<Node>,

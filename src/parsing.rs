@@ -1,16 +1,22 @@
-use crate::types::{Node, ParsingError, VariableNode};
+use serde::Serialize;
+
+use crate::{
+    invocations::{self, Invocation},
+    types::{Node, ParsingError, VariableNode},
+};
 use std::collections::HashMap;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Lambda {
-    kind: LambdaKind,
-    calls: Option<Vec<String>>,
+    pub(crate) kind: LambdaKind,
+    pub(crate) invocations: Option<Vec<Invocation>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub enum LambdaKind {
     Assignment { ident: VariableNode, body: Node },
     Statement { body: Node },
+    StandaloneInvocation,
 }
 
 impl Lambda {
@@ -39,18 +45,14 @@ impl Lambda {
         }
 
         raw_exprs.into_iter().map(|mut expr| {
-            let mut calls = Vec::new();
+            let (invocations, e) = Invocation::parse(&expr, 0)?;
+            expr = e.to_string();
 
-            while let Some(end_idx) = expr.find('!') {
-                let call = if let Some(start_idx) = expr[..end_idx].rfind(|c: char| c.is_ascii_whitespace()) {
-                    &expr[start_idx..end_idx]
-                } else {
-                    &expr[..end_idx]
-                };
-
-                calls.push(call.to_uppercase());
-                expr = expr[end_idx + 1..].trim().to_string();
-            }
+            let invocations = if !invocations.is_empty() {
+                Some(invocations)
+            } else {
+                None
+            };
 
             if let Some(idx) = expr.find(":=") {
                 let (raw_ident, raw_body) = expr.split_once(":=").unwrap();
@@ -66,20 +68,19 @@ impl Lambda {
 
                 Ok(Lambda {
                     kind: LambdaKind::Assignment { ident, body },
-                    calls: if calls.is_empty() {
-                        None
-                    } else {
-                        Some(calls)
-                    },
+                    invocations,
                 })
             } else {
+                if expr.is_empty() && invocations.is_some() {
+                    return Ok(Lambda {
+                        kind: LambdaKind::StandaloneInvocation,
+                        invocations,
+                    });
+                }
+
                 Ok(Lambda {
                     kind: Node::parse_str(&expr, 0).map(|e| LambdaKind::Statement { body: e })?,
-                    calls: if calls.is_empty() {
-                        None
-                    } else {
-                        Some(calls)
-                    },
+                    invocations,
                 })
             }
         })
