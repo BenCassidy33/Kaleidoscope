@@ -23,21 +23,17 @@ fn do_stuff() -> miette::Result<()> {
 }
 
 fn main() -> miette::Result<()> {
+    // let mut assignments = HashMap::new();
 
-    let mut assignments = HashMap::new();
-    let Lambda::Assignment { ident, body } = kaleidoscope::parse("G := Lm.m")? else {
-        unimplemented!();
-    };
+    let input = r#"
+G := Lm.m
+    X
+H := (Lx.G)Y
+"#;
 
-    assignments.insert(ident, body);
-
-    let Lambda::Statement { mut body } = kaleidoscope::parse("Lm.G")? else {
-        unimplemented!();
-    };
-
-    dbg!(&body.to_string());
-    body = body.replace_assignments(&assignments);
-    dbg!(&body.to_string());
+    kaleidoscope::parse(input).for_each(|f| {
+        dbg!(f);
+    });
 
     Ok(())
 }
