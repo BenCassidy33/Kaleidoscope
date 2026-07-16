@@ -12,13 +12,13 @@ use crate::{
 #[error("Parsing Error")]
 pub struct InvocationError {
     #[source_code]
-    src: String,
-    msg: Option<String>,
+    pub(crate) src: String,
+    pub(crate) msg: Option<String>,
 
     #[label("{msg:?}")]
-    error_span: SourceSpan,
+    pub(crate) error_span: SourceSpan,
 
-    created_at: Option<CreatedAt>
+    pub(crate) created_at: Option<CreatedAt>,
 }
 
 impl InvocationError {
@@ -26,13 +26,13 @@ impl InvocationError {
         src: S,
         msg: Option<S>,
         error_span: N,
-        created_at: Option<CreatedAt>
+        created_at: Option<CreatedAt>,
     ) -> Self {
         Self {
             src: src.into(),
             msg: msg.map(|f| f.into()),
             error_span: error_span.into(),
-            created_at
+            created_at,
         }
     }
 }
@@ -43,7 +43,7 @@ pub enum BuiltinInvocations {
     Json,
 
     SetOpt,
-    Define
+    Define,
 }
 
 impl TryFrom<&str> for BuiltinInvocations {

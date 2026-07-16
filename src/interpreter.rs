@@ -4,9 +4,7 @@ use miette::{Diagnostic, SourceSpan};
 use thiserror::Error;
 
 use crate::{
-    Lambda, LambdaKind,
-    opts::{CreateDefaultOpts, DefaultOpts, GetDefaultOpt, Opts},
-    types::CreatedAt,
+    Lambda, LambdaKind, invocations::InvocationError, opts::{CreateDefaultOpts, DefaultOpts, GetDefaultOpt, Opts}, types::CreatedAt,
 };
 
 #[derive(Clone, Error, Debug, Diagnostic)]
@@ -20,6 +18,17 @@ pub struct IterpertingError {
     error_span: SourceSpan,
 
     created_at: Option<CreatedAt>,
+}
+
+impl From<InvocationError> for IterpertingError {
+    fn from(val: InvocationError) -> Self {
+        IterpertingError {
+            src: val.src,
+            msg: val.msg,
+            error_span: val.error_span,
+            created_at: val.created_at
+        }
+    }
 }
 
 impl IterpertingError {
@@ -38,7 +47,7 @@ impl IterpertingError {
     }
 }
 
-pub fn interpret<L, O>(lambdas: L, out: &mut O)
+pub fn interpret<L, O>(lambdas: L, out: &mut O) -> Result<(), IterpertingError>
 where
     L: IntoIterator<Item = Lambda>,
     O: std::io::Write,
@@ -79,7 +88,7 @@ where
                     .invocations
                     .expect("Standalone Inovaction with no invocations!")
                 {
-                    invocation.invoke();
+                    invocation.invoke()?;
                     todo!("Invocation Error!");
                 }
 
@@ -87,4 +96,6 @@ where
             }
         }
     }
+
+    Ok(())
 }
