@@ -3,13 +3,31 @@ import "mathlive";
 
 import init from "../build/pkg/kaleidoscope.js";
 import { MathFieldElement } from "./elements";
-import { SVGNode } from "./utils/svgTree.js";
+import { Node, RawSVG, SVGRenderer } from "./utils/svgTree.js";
+
 
 async function main() {
   await init();
+  SVGRenderer.Init();
+
   new MathFieldElement();
 
-  new SVGNode();
+  let text = RawSVG.create<SVGTextElement>("text", {
+    x: 0,
+    y: 0,
+    fontSize: 16,
+    fill: "black",
+    textAnchor: "middle",
+    dominantBaseline: "middle",
+  });
+
+  text.textContent = "hello!";
+
+  const c = new Node({ cx: 0, cy: 0, r: 50 });
+  c.setInner(text);
+
+  SVGRenderer.AddNode(c.toElement());
+  SVGRenderer.Render();
 }
 
 main();
