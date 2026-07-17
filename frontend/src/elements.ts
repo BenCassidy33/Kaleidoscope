@@ -1,5 +1,7 @@
-import { MathfieldElement, type Mathfield } from "mathlive";
+import { MathfieldElement } from "mathlive";
 
+export const renderArea =
+  document.querySelector<HTMLDivElement>("#render-area")!;
 export const mainEl = document.querySelector<HTMLTemplateElement>("main")!;
 export const addNewMathInputEl = document.querySelector<HTMLTemplateElement>(
   "#add-new-math-input",
@@ -47,6 +49,6 @@ export class MathFieldElement {
     );
 
     this.mf.menuItems = [];
-    this.mf.addEventListener("click", () => this.mf.focus())
+    this.mf.addEventListener("click", () => this.mf.focus());
   }
 }
