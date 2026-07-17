@@ -241,9 +241,11 @@ export class Node {
         group.appendChild(this.inner.toElement());
       }
 
+      group.classList.add("svgGroup");
       return group;
     }
 
+    circle.classList.add("svgNode")
     return circle;
   }
 
