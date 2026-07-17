@@ -1,8 +1,9 @@
-use std::panic::Location;
-
 use miette::{Diagnostic, SourceSpan};
 use serde::Serialize;
+use std::panic::Location;
 use thiserror::Error;
+use wasm_bindgen::prelude::*;
+use crate::repr_wasm;
 
 pub mod abstraction;
 pub mod application;
@@ -26,9 +27,7 @@ impl From<Opts> for NodeFormattingOptions {
         let extra_delimiters =
             value.get_default_opt_current::<bool>(&DefaultOpts::FormatWithExtraDelimiters);
 
-        Self {
-            extra_delimiters,
-        }
+        Self { extra_delimiters }
     }
 }
 
@@ -74,7 +73,8 @@ impl From<(usize, usize)> for Span {
 }
 
 #[allow(dead_code)]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, derive_more::Display, Serialize)]
+#[display("{file:?} {line:?} {column:?}")]
 pub struct CreatedAt {
     file: &'static str,
     line: u32,
@@ -100,7 +100,8 @@ impl Default for CreatedAt {
     }
 }
 
-#[derive(Clone, Error, Debug, Diagnostic)]
+#[wasm_bindgen]
+#[derive(Clone, Error, Debug, Diagnostic, Serialize)]
 #[error("Parsing Error")]
 pub struct ParsingError {
     #[source_code]
@@ -108,10 +109,13 @@ pub struct ParsingError {
     msg: Option<String>,
 
     #[label("{msg:?}")]
+    #[serde(skip)]
     error_span: SourceSpan,
 
     created_at: Option<CreatedAt>,
 }
+
+repr_wasm!(ParsingError);
 
 impl ParsingError {
     pub fn new<S: Into<String>, N: Into<SourceSpan>>(
@@ -144,7 +148,8 @@ impl ParsingError {
     }
 }
 
-#[derive(Clone, Error, Debug, Diagnostic)]
+#[wasm_bindgen]
+#[derive(Clone, Error, Debug, Diagnostic, Serialize)]
 #[error("Parsing Error")]
 pub struct ReductionError {
     #[source_code]
@@ -152,10 +157,13 @@ pub struct ReductionError {
     pub(crate) msg: Option<String>,
 
     #[label("{msg:?}")]
+    #[serde(skip)]
     pub(crate) error_span: SourceSpan,
 
     pub(crate) created_at: Option<CreatedAt>,
 }
+
+repr_wasm!(ReductionError);
 
 impl ReductionError {
     pub fn new<S: Into<String>, N: Into<SourceSpan>>(
@@ -171,4 +179,27 @@ impl ReductionError {
             created_at,
         }
     }
+}
+
+#[macro_export]
+macro_rules! repr_wasm {
+    ($ident:ident) => {
+        #[wasm_bindgen]
+        impl $ident {
+            #[wasm_bindgen(js_name = toString)]
+            pub fn to_js_string(&self) -> String {
+                format!("{}", self)
+            }
+
+            // TODO: Make this an actual error type
+            #[wasm_bindgen(js_name = toJson)]
+            pub fn to_json(&self, pretty: bool) -> Option<String> {
+                if pretty {
+                    return serde_json::to_string_pretty(self).ok();
+                }
+
+                serde_json::to_string(self).ok()
+            }
+        }
+    };
 }

@@ -27,7 +27,7 @@ export class SVGRenderer {
       SVGRenderer.HandleMouseDown,
     );
 
-    Node.setAttributes(SVGRenderer.viewport, {
+    SVGNode.setAttributes(SVGRenderer.viewport, {
       width: SVGRenderer.renderContainerEl.clientWidth,
       height: SVGRenderer.renderContainerEl.clientHeight,
       viewBox: `0 0 ${SVGRenderer.renderContainerEl?.clientWidth} ${SVGRenderer.renderContainerEl?.clientHeight}`,
@@ -56,7 +56,7 @@ export class SVGRenderer {
   }
 
   static ResetViewport() {
-    Node.setAttributes(SVGRenderer.viewport, {
+    SVGNode.setAttributes(SVGRenderer.viewport, {
       viewBox: `0 0 ${SVGRenderer.renderContainerEl.clientWidth} ${SVGRenderer.renderContainerEl.clientHeight}`,
     });
   }
@@ -72,7 +72,7 @@ export class SVGRenderer {
     const cdx = csx - cx;
     const cdy = csy - cy;
 
-    Node.setAttributes(SVGRenderer.viewport, {
+    SVGNode.setAttributes(SVGRenderer.viewport, {
       viewBox: `${this.m_viewportStartX + cdx} ${this.m_viewportStartY + cdy} ${SVGRenderer.renderContainerEl.clientWidth} ${SVGRenderer.renderContainerEl.clientHeight}`,
     });
   }
@@ -154,7 +154,7 @@ type SVGCircleAttrs = {
 export class RawSVG {
   static create<T extends SVGElement>(kind: string, attributes: Object): T {
     const e = document.createElementNS(NS_URL, kind) as T;
-    Node.setAttributes(e, attributes);
+    SVGNode.setAttributes(e, attributes);
 
     return e;
   }
@@ -162,10 +162,10 @@ export class RawSVG {
 
 const CASE_SENSITIVE_ATTRS = new Set(["viewBox", "preserveAspectRatio"]);
 
-export class Node {
-  left: Node | undefined;
-  right: Node | undefined;
-  inner: Node | SVGElement | undefined;
+export class SVGNode {
+  left: SVGNode | undefined;
+  right: SVGNode | undefined;
+  inner: SVGNode | SVGElement | undefined;
 
   attributes: Partial<SVGCircleAttrs>;
   el: Element;
@@ -182,16 +182,16 @@ export class Node {
       stroke: "black",
       strokeWidth: "4",
     },
-    inner?: Node | SVGElement,
-    left?: Node,
-    right?: Node,
+    inner?: SVGNode | SVGElement,
+    left?: SVGNode,
+    right?: SVGNode,
   ) {
     this.attributes = attributes;
     this.left = left;
     this.right = right;
     if (inner) this.setInner(inner);
 
-    let { x, y } = Node.NormalizePosition(attributes.cx!, attributes.cy!);
+    let { x, y } = SVGNode.NormalizePosition(attributes.cx!, attributes.cy!);
     this.cx = x;
     this.cy = y;
 
@@ -216,13 +216,13 @@ export class Node {
 
   toElement(): Element {
     const circle = document.createElementNS(NS_URL, "circle");
-    let { x, y } = Node.NormalizePosition(
+    let { x, y } = SVGNode.NormalizePosition(
       //@ts-ignore
       this.attributes.cx!,
       this.attributes.cy!,
     );
 
-    Node.setAttributes(circle, {
+    SVGNode.setAttributes(circle, {
       ...this.attributes,
       cx: x,
       cy: y,
@@ -237,7 +237,7 @@ export class Node {
 
       if (this.inner instanceof SVGElement) {
         group.appendChild(this.inner);
-      } else if (this.inner instanceof Node) {
+      } else if (this.inner instanceof SVGNode) {
         group.appendChild(this.inner.toElement());
       }
 
@@ -254,9 +254,9 @@ export class Node {
     return this.el;
   }
 
-  setInner(inner: Node | SVGElement) {
+  setInner(inner: SVGNode | SVGElement) {
     if (inner instanceof SVGElement) {
-      Node.setAttributes(inner, {
+      SVGNode.setAttributes(inner, {
         x: this.cx,
         y: this.cy,
       });

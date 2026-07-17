@@ -1,14 +1,15 @@
-use std::fmt::Display;
-use getset::Getters;
-use serde::Serialize;
 use crate::{
-    LAMBDA_CHAR, VALID_LAMBDA_CHARACTERS,
+    LAMBDA_CHAR, VALID_LAMBDA_CHARACTERS, repr_wasm,
     types::{
-        CreatedAt, ParsingError, ReductionError, Span, node::Node,
-        variable::VariableNode,
+        CreatedAt, ParsingError, ReductionError, Span, WasmNode, node::Node, variable::VariableNode,
     },
 };
+use getset::Getters;
+use serde::Serialize;
+use std::fmt::Display;
+use wasm_bindgen::prelude::*;
 
+#[wasm_bindgen]
 #[derive(Debug, Getters, PartialEq, Clone, Serialize)]
 #[getset(get = "pub")]
 pub struct AbstractionNode {
@@ -16,6 +17,8 @@ pub struct AbstractionNode {
     pub(crate) body: Box<Node>,
     pub(crate) span: Span,
 }
+
+repr_wasm!(AbstractionNode);
 
 impl From<AbstractionNode> for Node {
     fn from(value: AbstractionNode) -> Self {
@@ -38,6 +41,104 @@ impl AbstractionNode {
         }
     }
 
+    pub fn find_mut<F: Fn(&Node) -> bool>(&mut self, f: F) -> Option<&mut Node> {
+        if f(self.bound.as_mut()) {
+            return Some(self.bound.as_mut());
+        }
+
+        if f(self.body.as_mut()) {
+            return Some(self.body.as_mut());
+        }
+
+        None
+    }
+
+    pub fn replace<F: Fn((&Node, Option<&VariableNode>)) -> bool>(
+        mut self,
+        f: &F,
+        bound: Option<&VariableNode>,
+        with: Node,
+    ) -> Node {
+        if f((&Node::Abstraction(self.clone()), bound)) {
+            return with;
+        }
+
+        if f((self.body(), bound)) {
+            return match *self.body {
+                Node::Variable(_) => with,
+                _ => {
+                    self.body = Box::new(with);
+                    Node::Abstraction(self)
+                }
+            };
+        } else {
+            let Node::Variable(var) = self.bound.as_ref() else {
+                panic!("Extend Syntax not supported yet!");
+            };
+
+            self.body = Box::new(self.body.replace(f, Some(var), with));
+        }
+
+        Node::Abstraction(self)
+    }
+
+    pub fn reduce(
+        mut self,
+        with: Node,
+        mut bound: Option<&VariableNode>,
+    ) -> Result<Node, ReductionError> {
+        if bound.is_none() {
+            let Node::Variable(ref b) = *self.bound else {
+                unreachable!();
+            };
+
+            bound = Some(Box::leak(Box::new(b.clone())));
+        }
+
+        match *self.body {
+            Node::Variable(ref variable_node) => {
+                if bound.is_some_and(|bound| bound == variable_node) {
+                    return Ok(with);
+                }
+
+                let s = self.to_string();
+                let l = s.len();
+
+                Err(ReductionError::new(
+                    s,
+                    Some(format!(
+                        "Abstraction's bounding variable does not appear in its body. Expected to find a bound '{}'",
+                        bound.unwrap()
+                    )),
+                    0..l,
+                    Some(CreatedAt::new()),
+                ))
+            }
+
+            // TODO: i think this is wrong, patch fix for now...
+            Node::Abstraction(abstraction_node) => {
+                self.bound = abstraction_node.bound().clone();
+                self.body = Box::new(abstraction_node.reduce(with, bound)?);
+                Ok(Node::Abstraction(self))
+            },
+
+            Node::Application(application) => {
+                if let Some(bound) = bound {
+                    application.reduce(with, Some(bound))
+                } else {
+                    let Node::Variable(b) = self.bound.as_ref() else {
+                        unreachable!("Extend syntax not currently supported.")
+                    };
+
+                    application.reduce(with, Some(b))
+                }
+            }
+        }
+    }
+}
+
+#[wasm_bindgen]
+impl AbstractionNode {
     pub fn parse_str(input: &str, start: usize) -> Result<Self, ParsingError> {
         if !input.starts_with(VALID_LAMBDA_CHARACTERS) {
             return Err(ParsingError::new(
@@ -92,90 +193,22 @@ impl AbstractionNode {
         })
     }
 
-    pub fn find_mut<F: Fn(&Node) -> bool>(&mut self, f: F) -> Option<&mut Node> {
-        if f(self.bound.as_mut()) {
-            return Some(self.bound.as_mut());
-        }
-
-        if f(self.body.as_mut()) {
-            return Some(self.body.as_mut());
-        }
-
-        None
-    }
-
-    pub fn replace<F: Fn((&Node, Option<&VariableNode>)) -> bool>(
-        mut self,
-        f: &F,
-        bound: Option<&VariableNode>,
-        with: Node,
-    ) -> Node {
-        if f((&Node::Abstraction(self.clone()), bound)) {
-            return with;
-        }
-
-        if f((self.body(), bound)) {
-            return match *self.body {
-                Node::Variable(_) => with,
-                _ => {
-                    self.body = Box::new(with);
-                    Node::Abstraction(self)
-                }
-            };
-        } else {
-            let Node::Variable(var) = self.bound.as_ref() else {
-                panic!("Extend Syntax not supported yet!");
-            };
-
-            self.body = Box::new(self.body.replace(f, Some(var), with));
-        }
-
-        Node::Abstraction(self)
-    }
-
-    pub fn reduce(
+    #[wasm_bindgen(js_name = reduce)]
+    pub fn wasm_reduce(
         self,
-        with: Node,
-        mut bound: Option<&VariableNode>,
-    ) -> Result<Node, ReductionError> {
-        if bound.is_none() {
-            let Node::Variable(ref b) = *self.bound else {
-                unreachable!();
-            };
+        with: WasmNode,
+        bound: Option<VariableNode>,
+    ) -> Result<WasmNode, ReductionError> {
+        self.reduce(with.into(), bound.as_ref()).map(Into::into)
+    }
 
-            bound = Some(Box::leak(Box::new(b.clone())));
-        }
+    #[wasm_bindgen(getter, js_name = bound)]
+    pub fn get_bound(&self) -> WasmNode {
+        (*self.bound.clone()).into()
+    }
 
-        match *self.body {
-            Node::Variable(ref variable_node) => {
-                if bound.is_some_and(|bound| bound == variable_node) {
-                    return Ok(with);
-                }
-
-                let s = self.to_string();
-                let l = s.len();
-                Err(ReductionError::new(
-                    s,
-                    Some(
-                        "Abstraction's bounding variable does not appear in its body. This is currently an error".to_string(),
-                    ),
-                    0..l,
-                    Some(CreatedAt::new()),
-                ))
-            }
-
-            Node::Abstraction(abstraction_node) => abstraction_node.reduce(with, bound),
-            Node::Application(application) => {
-                if let Some(bound) = bound {
-                    application.reduce(with, Some(bound))
-                } else {
-                    let Node::Variable(b) = self.bound.as_ref() else {
-                        unreachable!("Extend syntax not currently supported.")
-                    };
-
-                    application.reduce(with, Some(b))
-                }
-            }
-        }
+    #[wasm_bindgen(getter, js_name = body)]
+    pub fn get_body(&self) -> WasmNode {
+        (*self.body.clone()).into()
     }
 }

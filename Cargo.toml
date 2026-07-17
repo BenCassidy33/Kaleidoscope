@@ -45,3 +45,6 @@ overflow-checks = false
 
 # this might need to be removed for error reporting
 panic = "abort"
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-O", "--enable-bulk-memory"]

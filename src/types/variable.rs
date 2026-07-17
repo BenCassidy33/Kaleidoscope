@@ -1,14 +1,16 @@
 use std::{fmt::Display, hash::Hash};
+use wasm_bindgen::prelude::*;
 
 use getset::Getters;
 use serde::Serialize;
 
 use crate::{
-    VALID_LAMBDA_CHARACTERS,
+    VALID_LAMBDA_CHARACTERS, repr_wasm,
     types::{CreatedAt, Node, ParsingError, Span},
     utils::find_closing_delim,
 };
 
+#[wasm_bindgen]
 #[derive(Debug, Clone, Getters, Eq, Serialize)]
 #[getset(get = "pub")]
 pub struct VariableNode {
@@ -16,6 +18,8 @@ pub struct VariableNode {
     pub(crate) subscript: Option<String>,
     pub(crate) span: Span,
 }
+
+repr_wasm!(VariableNode);
 
 impl From<VariableNode> for Node {
     fn from(val: VariableNode) -> Self {
@@ -88,8 +92,8 @@ impl Display for VariableNode {
     }
 }
 
+#[wasm_bindgen]
 impl VariableNode {
-    #[inline]
     pub fn new(ident: char, subscript: Option<String>, start: usize, had_curly: bool) -> Self {
         Self {
             ident,
@@ -105,6 +109,16 @@ impl VariableNode {
             },
             subscript,
         }
+    }
+
+    #[wasm_bindgen(getter, js_name = ident)]
+    pub fn get_ident(&self) -> char {
+        self.ident
+    }
+
+    #[wasm_bindgen(getter, js_name = subscript)]
+    pub fn get_subscript(&self) -> Option<String> {
+        self.subscript.clone()
     }
 
     pub fn parse_str(s: &str, start: usize) -> Result<Self, ParsingError> {
@@ -218,7 +232,4 @@ impl VariableNode {
             }
         }
     }
-
-    // pub fn reduce(self, with: Node) -> Result<Node, ReductionError> {
-    // }
 }

@@ -4,9 +4,7 @@ use std::io::stdout;
 
 use clap::Parser;
 use kaleidoscope::{
-    Lambda, UnwrapExpressions,
-    args::{Args, Subcommands},
-    repl::run_repl,
+    Lambda, UnwrapExpressions, UnzipExpressions, args::{Args, Subcommands}, repl::run_repl,
 };
 
 // TODO: Inline this for actual releases
@@ -25,10 +23,7 @@ fn do_stuff() -> miette::Result<()> {
 }
 
 fn main() -> miette::Result<()> {
-    let input = r#"
-G := Lm.mx
-kG
-"#;
+    let input = r#"yz(Lm.(Lx.xm))"#;
 
     let expressions = Lambda::parse(input);
     kaleidoscope::interpreter::interpret(expressions.unwrap_expressions()?, &mut stdout())?;

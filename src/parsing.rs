@@ -1,16 +1,19 @@
 use serde::Serialize;
+use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
-    invocations::Invocation,
-    types::{Node, ParsingError, VariableNode},
+    invocations::Invocation, repr_wasm, types::{Node, ParsingError, VariableNode, WasmNode},
 };
 use std::{collections::HashMap, fmt::Display};
 
+#[wasm_bindgen]
 #[derive(Debug, Serialize, Clone)]
 pub struct Lambda {
     pub(crate) kind: LambdaKind,
     pub(crate) invocations: Option<Vec<Invocation>>,
 }
+
+repr_wasm!(Lambda);
 
 impl Display for Lambda {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -30,6 +33,16 @@ pub enum LambdaKind {
     Assignment { ident: VariableNode, body: Node },
     Statement { body: Node },
     StandaloneInvocation,
+}
+
+impl Display for LambdaKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LambdaKind::Assignment { ident, body } => write!(f, "{} := {}", ident, body),
+            LambdaKind::Statement { body } => write!(f, "{}", body),
+            LambdaKind::StandaloneInvocation => write!(f, "<<Invocation>>"),
+        }
+    }
 }
 
 impl Lambda {
@@ -119,6 +132,26 @@ impl Lambda {
     }
 }
 
+#[wasm_bindgen]
+impl Lambda {
+    #[wasm_bindgen(js_name = parse)]
+    pub fn parse_wasm(input: String) -> Result<Vec<Lambda>, ParsingError> {
+        Lambda::parse(input)
+            .unwrap_expressions()
+            .map(|v| v.collect())
+    }
+
+    #[wasm_bindgen(getter, js_name = kind)]
+    pub fn get_kind(&self) -> WasmLambdaKind {
+        self.kind.clone().into()
+    }
+
+    // #[wasm_bindgen(getter, js_name = invocations)]
+    // pub fn get_invocations(&self) -> Option<Vec<Invocation>> {
+    //     self.invocations.clone()
+    // }
+}
+
 pub trait UnwrapExpressions
 where
     Self: Iterator,
@@ -154,5 +187,112 @@ where
             .collect::<Result<Vec<_>, _>>()?
             .into_iter()
             .partition(|l| matches!(l.kind, LambdaKind::Assignment { .. })))
+    }
+}
+
+#[wasm_bindgen]
+#[derive(Debug, Serialize, Clone, derive_more::Display)]
+#[display("{ident} := {body}")]
+pub struct WasmAssignment {
+    ident: VariableNode,
+    body: Node
+}
+
+repr_wasm!(WasmAssignment);
+
+#[wasm_bindgen]
+impl WasmAssignment {
+    #[wasm_bindgen(getter)]
+    pub fn ident(&self) -> VariableNode {
+        self.ident.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn body(&self) -> WasmNode {
+        self.body.clone().into()
+    }
+}
+
+#[wasm_bindgen]
+#[derive(Debug, Serialize, Clone)]
+pub struct WasmLambdaKind {
+    kind: WasmLambdaKindInner,
+    assignment: Option<WasmAssignment>,
+    statement: Option<Node>,
+}
+
+#[wasm_bindgen]
+#[derive(Debug, Serialize, Clone, Copy)]
+pub enum WasmLambdaKindInner {
+    Assignment,
+    Statement,
+    StandaloneInvocation,
+}
+
+impl From<LambdaKind> for WasmLambdaKind {
+    fn from(val: LambdaKind) -> Self {
+        match val {
+            LambdaKind::Assignment { ident, body } => WasmLambdaKind {
+                kind: WasmLambdaKindInner::Assignment,
+                assignment: Some(WasmAssignment { ident, body }),
+                statement: None,
+            },
+
+            LambdaKind::Statement { body } => WasmLambdaKind {
+                kind: WasmLambdaKindInner::Statement,
+                assignment: None,
+                statement: Some(body),
+            },
+
+            LambdaKind::StandaloneInvocation => WasmLambdaKind {
+                kind: WasmLambdaKindInner::StandaloneInvocation,
+                assignment: None,
+                statement: None,
+            },
+        }
+    }
+}
+
+#[wasm_bindgen]
+impl WasmLambdaKind {
+    #[wasm_bindgen(js_name = toString)]
+    pub fn to_js_string(self) -> String {
+        format!("{}", self)
+    }
+
+    // TODO: Make this an actual error type
+    #[wasm_bindgen(js_name = toJson)]
+    pub fn to_json(self, pretty: bool) -> Option<String> {
+        if pretty {
+            return serde_json::to_string_pretty(&self).ok();
+        }
+
+        serde_json::to_string(&self).ok()
+    }
+
+    #[wasm_bindgen(js_name = isAssignment)]
+    pub fn is_assignment(&self) -> bool {
+        self.assignment.is_some()
+    }
+
+    #[wasm_bindgen(js_name = isStatement)]
+    pub fn is_statement(&self) -> bool {
+        self.statement.is_some()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn assignment(&self) -> Option<WasmAssignment> {
+        self.assignment.clone()
+    }
+
+    #[wasm_bindgen(getter)]
+    pub fn statement(&self) -> Option<WasmNode> {
+        self.statement.clone().map(Into::into)
+    }
+}
+
+impl Display for WasmLambdaKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self)
     }
 }

@@ -1,5 +1,11 @@
 import { MathfieldElement } from "mathlive";
+import { LambdaHandler } from "./handler";
 
+export const reduceButtonEl = document.querySelector<HTMLDivElement>("#reduce-button")!;
+
+reduceButtonEl.addEventListener("click", () => {
+  LambdaHandler.ReduceLastStatement()
+})
 
 export const mainEl = document.querySelector<HTMLTemplateElement>("main")!;
 export const addNewMathInputEl = document.querySelector<HTMLTemplateElement>(
@@ -49,6 +55,11 @@ export class MathFieldElement {
 
     this.mf.menuItems = [];
     this.mf.addEventListener("click", () => this.mf.focus());
+    this.mf.addEventListener("keydown", (ev: KeyboardEvent) => {
+      if (ev.code === 'Enter') {
+        LambdaHandler.ParseExpression(this.id, this.mf.value);
+      }
+    })
 
     this.mf.macros = {
       ...this.mf.macros,

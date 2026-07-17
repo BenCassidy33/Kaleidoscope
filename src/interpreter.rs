@@ -88,6 +88,7 @@ where
     let assignments = Lambda::generate_assignment_map(&assignment_expressions);
 
     for statement in lambdas {
+        let mut frames = Vec::new();
         match statement.kind {
             LambdaKind::Assignment { .. } => {
                 if statement.invocations.is_some() {
@@ -121,14 +122,46 @@ where
                     }
                 }
 
-                let old = body.clone();
+                frames.push(body.clone());
 
-                body = match body {
-                    Node::Application(ap) => ap.reduce_self()?,
-                    _ => body,
-                };
+                loop {
+                    body = match body {
+                        Node::Application(ap) => ap.reduce_self()?,
+                        _ => body,
+                    };
 
-                writeln!(stdout, "(Expression Reduction) {} => {}", old, body)?;
+                    if frames[frames.len() - 1] == body {
+                        break;
+                    }
+
+                    frames.push(body.clone());
+                }
+
+                if frames.len() == 1 {
+                    writeln!(
+                        stdout,
+                        "(Expression Reduction)\n{} => {}",
+                        frames[0], frames[0]
+                    )?;
+                } else if frames.len() == 2 {
+                    writeln!(
+                        stdout,
+                        "(Expression Reduction) \t {} => {}",
+                        frames[0], frames[1]
+                    )?;
+                } else {
+                    writeln!(
+                        stdout,
+                        "(Expression Reduction)\n\t{}",
+                        frames[0]
+                    )?;
+
+                    for frame in frames.iter().skip(1) {
+                        writeln!(stdout, "\t=> {}", frame)?;
+                    }
+
+                    writeln!(stdout)?;
+                }
             }
 
             LambdaKind::StandaloneInvocation => {
