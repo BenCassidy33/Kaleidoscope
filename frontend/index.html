@@ -5,18 +5,23 @@
     <title>Kaleidoscope</title>
     <script defer src="/src/main.ts" type="module"></script>
     <link rel="stylesheet" href="/src/styles/main.scss" />
-    <link rel="stylesheet" href="/katex/katex.min.css">
+    <link rel="stylesheet" href="/katex/katex.min.css" />
   </head>
   <body>
     <main>
       <template id="math-input-template">
-        <div class="math-inputs-container">
-          <math-field></math-field>
-          <div></div>
+        <div class="math-input-container">
+          <div class="math-field-controls">
+            <div class="math-field-close math-field-control">
+              <object class="math-field-control-close" data="/svgs/cross.svg" type="image/svg+xml"></object>
+            </div>
+          </div>
         </div>
       </template>
 
-      <div id="math-inputs-container"></div>
+      <div id="math-inputs-list">
+        <div id="add-new-math-input">+</div>
+      </div>
     </main>
   </body>
 </html>
