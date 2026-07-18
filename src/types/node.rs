@@ -214,6 +214,12 @@ impl From<Node> for WasmNode {
     }
 }
 
+impl From<&Node> for WasmNode {
+    fn from(value: &Node) -> Self {
+        Self { inner: value.clone() }
+    }
+}
+
 #[wasm_bindgen]
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct WasmNode {

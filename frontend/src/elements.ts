@@ -4,7 +4,7 @@ import { LambdaHandler } from "./handler";
 export const reduceButtonEl = document.querySelector<HTMLDivElement>("#reduce-button")!;
 
 reduceButtonEl.addEventListener("click", () => {
-  LambdaHandler.ReduceLastStatement()
+  LambdaHandler.Interpret()
 })
 
 export const mainEl = document.querySelector<HTMLTemplateElement>("main")!;

@@ -1,7 +1,10 @@
+import type { WasmFrames } from "../../build/pkg/kaleidoscope";
+import { type Renderer } from "./renderHandler";
+
 const NS_URL: string = "http://www.w3.org/2000/svg";
 window.addEventListener("resize", () => {});
 
-export class SVGRenderer {
+export class SVGRenderer implements Renderer {
   static nodes: Element[] = [];
   static renderContainerEl: HTMLDivElement;
   static viewport: SVGElement;
@@ -12,6 +15,16 @@ export class SVGRenderer {
   private static m_clientStartY: number;
   private static m_viewportStartX: number;
   private static m_viewportStartY: number;
+
+  setup() {
+    SVGRenderer.Init()
+  }
+
+  renderNode(node: WasmNode): void {};
+
+  renderFrames(frames: WasmFrames) {
+    throw new Error("Todo!");
+  }
 
   static Init() {
     SVGRenderer.renderContainerEl =

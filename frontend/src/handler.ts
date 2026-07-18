@@ -1,5 +1,12 @@
 import type { MathfieldElement } from "mathlive";
-import { Lambda, ParsingError, WasmAssignment, WasmNode } from "../build/pkg/kaleidoscope";
+import {
+  Lambda,
+  ParsingError,
+  ReductionError,
+  wasm_interpret_raw,
+  WasmAssignment,
+  WasmNode,
+} from "../build/pkg/kaleidoscope";
 import { mathFieldsContainer } from "./elements";
 
 export type ExpressionEntry = {
@@ -38,9 +45,7 @@ export class LambdaHandler {
 
     let lambda: Lambda[];
     try {
-       lambda = Lambda.parse(
-        LambdaHandler.NormalizeLatex(expression),
-      );
+      lambda = Lambda.parse(LambdaHandler.NormalizeLatex(expression));
     } catch (e) {
       console.log("Error = ", (e as ParsingError).toJson(true));
       return;
@@ -84,7 +89,13 @@ export class LambdaHandler {
     }
 
     console.log(item.toString());
-    item = item.reduce();
+    try {
+      item = item.reduce();
+    } catch (e) {
+      // @ts-ignore
+      console.log(`Reduction Error: ${(e as ReductionError).toJson()}`);
+      return;
+    }
     console.log(item.toString());
   }
 
@@ -94,9 +105,41 @@ export class LambdaHandler {
       .replace(/\\left/g, "")
       .replace(/\\right/g, "")
       .replace(/\\l/g, "L")
-      .replace(" ", "");
+      .replace(/\\coloneq/g, ":=")
+      .replace(/\s+/g, "");
     console.log(s);
 
     return s;
+  }
+
+  // this function is wholly different then Parse and Reduce.
+  static Interpret() {
+    LambdaHandler.AssertInit();
+    let fields = mathFieldsContainer.querySelectorAll(
+      "math-field",
+    ) as NodeListOf<MathfieldElement>;
+
+    let allExpressions = "";
+
+    for (const field of fields) {
+      allExpressions += LambdaHandler.NormalizeLatex(field.value) + "\n";
+    }
+
+    if (allExpressions === "") {
+      return;
+    }
+
+    let frames;
+    try {
+      if (!(frames = wasm_interpret_raw(allExpressions))) {
+        console.log("No statements could be reduced!");
+        return;
+      };
+    } catch (e) {
+      // @ts-ignore
+      console.error(`Error when interpreting expressions! ${e.toJson()}`)
+    }
+
+    console.log(frames?.toJson(), frames?.getFrames());
   }
 }

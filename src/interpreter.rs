@@ -1,27 +1,37 @@
+use std::io::{BufWriter, Empty, empty};
+
+use derive_more::derive;
 use miette::{Diagnostic, SourceSpan};
+use serde::Serialize;
 use thiserror::Error;
+use wasm_bindgen::prelude::*;
 
 use crate::{
-    Lambda, LambdaKind,
+    Lambda, LambdaKind, UnwrapExpressions,
     invocations::InvocationError,
     opts::{CreateDefaultOpts, DefaultOpts, GetDefaultOpt, Opts},
-    types::{CreatedAt, Node, ReductionError},
+    repr_wasm,
+    types::{CreatedAt, Node, ParsingError, ReductionError, WasmNode},
 };
 
-#[derive(Clone, Error, Debug, Diagnostic)]
+#[wasm_bindgen]
+#[derive(Clone, Error, Debug, Diagnostic, Serialize)]
 #[error("Parsing Error")]
-pub struct IterpertingError {
+pub struct InterpretingError {
     #[source_code]
     src: String,
     msg: Option<String>,
 
+    #[serde(skip)]
     #[label("{msg:?}")]
     error_span: SourceSpan,
 
     created_at: Option<CreatedAt>,
 }
 
-impl From<std::io::Error> for IterpertingError {
+repr_wasm!(InterpretingError);
+
+impl From<std::io::Error> for InterpretingError {
     fn from(value: std::io::Error) -> Self {
         Self {
             src: "".to_string(),
@@ -32,9 +42,9 @@ impl From<std::io::Error> for IterpertingError {
     }
 }
 
-impl From<InvocationError> for IterpertingError {
+impl From<InvocationError> for InterpretingError {
     fn from(val: InvocationError) -> Self {
-        IterpertingError {
+        InterpretingError {
             src: val.src,
             msg: val.msg,
             error_span: val.error_span,
@@ -43,9 +53,9 @@ impl From<InvocationError> for IterpertingError {
     }
 }
 
-impl From<ReductionError> for IterpertingError {
-    fn from(val: ReductionError) -> IterpertingError {
-        IterpertingError {
+impl From<ReductionError> for InterpretingError {
+    fn from(val: ReductionError) -> InterpretingError {
+        InterpretingError {
             src: val.src,
             msg: val.msg,
             error_span: val.error_span,
@@ -54,7 +64,18 @@ impl From<ReductionError> for IterpertingError {
     }
 }
 
-impl IterpertingError {
+impl From<ParsingError> for InterpretingError {
+    fn from(value: ParsingError) -> Self {
+        Self {
+            src: value.src,
+            msg: value.msg,
+            error_span: value.error_span,
+            created_at: value.created_at,
+        }
+    }
+}
+
+impl InterpretingError {
     pub fn new<S: Into<String>, N: Into<SourceSpan>>(
         src: S,
         msg: Option<S>,
@@ -70,14 +91,50 @@ impl IterpertingError {
     }
 }
 
+#[wasm_bindgen]
+#[derive(Debug, Clone, Serialize, derive::Display)]
+#[display("{:?}", self.0)]
+pub struct WasmFrames(Vec<Vec<Node>>);
+
+repr_wasm!(WasmFrames);
+
+#[wasm_bindgen]
+impl WasmFrames {
+    #[wasm_bindgen(js_name = getFrames)]
+    pub fn get_frames(&self) -> Vec<WasmNode> {
+        self.0
+            .iter()
+            .flatten()
+            .map(Into::<WasmNode>::into)
+            .collect()
+    }
+
+    #[wasm_bindgen(js_name = getFrameLengths)]
+    pub fn get_frames_lengths(&self) -> Vec<usize> {
+        self.0.iter().map(|f| f.len()).collect()
+    }
+}
+
+#[wasm_bindgen]
+pub fn wasm_interpret_raw(expressions: String) -> Result<WasmFrames, InterpretingError> {
+
+    let expressions: Vec<Lambda> = Lambda::parse(expressions)
+        .unwrap_expressions()
+        .map_err(Into::<InterpretingError>::into)?.collect();
+
+    Ok(WasmFrames(interpret(expressions, &mut empty())?))
+}
+
 // TODO: Standardize output format of results
-pub fn interpret<L, O>(lambdas: L, stdout: &mut O) -> Result<(), IterpertingError>
+pub fn interpret<L, O>(lambdas: L, stdout: &mut O) -> Result<Vec<Vec<Node>>, InterpretingError>
 where
     L: IntoIterator<Item = Lambda>,
     O: std::io::Write,
 {
     let opts = Opts::create_default_options();
     let lambdas: Vec<Lambda> = lambdas.into_iter().collect();
+
+    let mut expression_frames = Vec::new();
 
     let assignment_expressions: Vec<Lambda> = lambdas
         .iter()
@@ -150,11 +207,7 @@ where
                         frames[0], frames[1]
                     )?;
                 } else {
-                    writeln!(
-                        stdout,
-                        "(Expression Reduction)\n\t{}",
-                        frames[0]
-                    )?;
+                    writeln!(stdout, "(Expression Reduction)\n\t{}", frames[0])?;
 
                     for frame in frames.iter().skip(1) {
                         writeln!(stdout, "\t=> {}", frame)?;
@@ -162,6 +215,8 @@ where
 
                     writeln!(stdout)?;
                 }
+
+                expression_frames.push(frames);
             }
 
             LambdaKind::StandaloneInvocation => {
@@ -178,5 +233,5 @@ where
         }
     }
 
-    Ok(())
+    Ok(expression_frames)
 }
