@@ -1,5 +1,4 @@
 import { type WasmNode } from "../../../build/pkg/kaleidoscope";
-import { ViewBox } from "../../utils";
 import { SVG_NS_URL, SVGRenderer } from "./svg";
 
 const X_NODE_SEPERATION: number = 80;
@@ -44,6 +43,8 @@ export class SVGNode {
   cx: number;
   cy: number;
 
+  shouldNodeAnimationPlay: boolean = true;
+
   constructor(
     attributes: Partial<SVGCircleAttrs> = {
       cx: 0,
@@ -75,19 +76,6 @@ export class SVGNode {
     this.el = this.toElement();
   }
 
-  // static NormalizePosition(x: number, y: number): { x: number; y: number } {
-  //   const rect = SVGRenderer.viewport.getBoundingClientRect();
-  //   return {
-  //     x: x,
-  //     y: y
-  //   };
-  //
-  //   return {
-  //     x: x + SVGRenderer.ClientWidth / 2,
-  //     y: y + SVGRenderer.ClientHeight / 2,
-  //   };
-  // }
-
   static RealizePosition(x: number, y: number): [number, number] {
     return [x - SVGRenderer.ClientWidth / 2, y - SVGRenderer.ClientWidth / 2];
   }
@@ -103,12 +91,6 @@ export class SVGNode {
 
   toElement(): Element {
     const circle = document.createElementNS(SVG_NS_URL, "circle");
-    // let { x, y } = SVGNode.NormalizePosition(
-    //   //@ts-ignore
-    //   this.attributes.cx!,
-    //   this.attributes.cy!,
-    // );
-
 
     SVGNode.setAttributes(circle, {
       ...this.attributes,

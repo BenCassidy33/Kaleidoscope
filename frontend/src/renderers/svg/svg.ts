@@ -19,6 +19,9 @@ export class SVGRenderer implements Renderer {
 
   private static isHoldingNode: boolean = false;
 
+  private static shouldNodeAnimationsPlay = true;
+  private static nodeAnimationId: number = -1;
+
   setup() {
     SVGRenderer.Init();
   }
@@ -234,6 +237,7 @@ export class SVGRenderer implements Renderer {
   }
 
   static HandleHeldNodeMove(node: SVGNode, el: Element) {
+    node.shouldNodeAnimationPlay = false;
     const circleNode = el.querySelector("circle")!;
     const text = el.querySelector("text")!;
 
@@ -277,7 +281,8 @@ export class SVGRenderer implements Renderer {
     SVGRenderer.RenderConnections();
   }
 
-  static HandleNodeReleased(node: SVGNode, el: Element) {
+  static HandleNodeReleased(node: SVGNode, _: Element) {
+    node.shouldNodeAnimationPlay = true;
     this.isHoldingNode = false;
   }
 
@@ -337,5 +342,9 @@ export class SVGRenderer implements Renderer {
   static get ClientHeight(): number {
     SVGRenderer.AssertInit();
     return SVGRenderer.renderContainerEl.clientHeight;
+  }
+
+  static StartNodeAnimations() {
+    new Worker("animationWorker.js")
   }
 }
