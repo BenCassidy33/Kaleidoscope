@@ -104,6 +104,10 @@ export class MathFieldElement {
     this.el.id = `math-input-${this.id}`;
 
     this.mf = new MathfieldElement();
+
+    //TODO: Remove this
+    this.mf.value = "abcd";
+
     this.el.appendChild(this.mf);
 
     this.closeButton = this.el.querySelector(".math-field-close")!;

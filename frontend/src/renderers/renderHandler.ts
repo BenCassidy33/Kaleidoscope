@@ -1,4 +1,4 @@
-import type { WasmFrames, WasmNode } from "../../build/pkg/kaleidoscope";
+import type { WasmNode } from "../../build/pkg/kaleidoscope";
 import {
   currentRenderer,
   rendererSelectDropdownOptions,
@@ -10,7 +10,7 @@ import { SVGRenderer } from "./svg/svg";
 export interface Renderer {
   setup(): void;
   renderNode(node: WasmNode): void;
-  renderFrames(node: WasmFrames): void;
+  renderFrames(node: WasmNode[]): void;
   resize(): void;
 }
 
@@ -67,11 +67,11 @@ export class RenderHandler {
   }
 
   static renderNode(node: WasmNode): void {
-    RenderHandler.renderNode(node);
+    RenderHandler.renderer.renderNode(node);
   }
 
-  static renderFrames(frames: WasmFrames): void {
-    RenderHandler.renderFrames(frames);
+  static renderFrames(frames: WasmNode[]): void {
+    RenderHandler.renderer.renderFrames(frames);
   }
 
   static setRendererByName(name: string) {

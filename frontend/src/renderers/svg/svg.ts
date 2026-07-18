@@ -1,11 +1,12 @@
 import type { WasmFrames, WasmNode } from "../../../build/pkg/kaleidoscope";
+import { TODO } from "../../utils";
 import { type Renderer } from "../renderHandler";
 import { SVGNode } from "./node";
 
 export const SVG_NS_URL: string = "http://www.w3.org/2000/svg";
 
 export class SVGRenderer implements Renderer {
-  static nodes: Element[] = [];
+  static nodes: SVGNode[] = [];
   static renderContainerEl: HTMLDivElement;
   static viewport: SVGElement;
 
@@ -20,10 +21,39 @@ export class SVGRenderer implements Renderer {
     SVGRenderer.Init();
   }
 
-  renderNode(node: WasmNode): void {}
+  renderNode(node: WasmNode): void {
+    SVGRenderer.nodes = [];
 
-  renderFrames(frames: WasmFrames) {
-    throw new Error("Todo!");
+    const root = SVGNode.FromWasmNode(node);
+    if (!root) {
+      return;
+    }
+
+    SVGRenderer.nodes = SVGRenderer.FlattenNodes(root);
+    SVGRenderer.Render();
+  }
+
+  static FlattenNodes(node: SVGNode | undefined): SVGNode[] {
+    if (!node) {
+      return [];
+    }
+
+    return [
+      node,
+      ...SVGRenderer.FlattenNodes(node.left),
+      ...SVGRenderer.FlattenNodes(node.right),
+    ];
+  }
+
+  renderFrames(frames: WasmNode[]) {
+    console.log(frames[1]?.toJson(true));
+    for (const wasm_node of frames) {
+      SVGRenderer.nodes = [];
+      SVGRenderer.viewport.querySelectorAll("g").forEach((g) => g.remove());
+      this.renderNode(wasm_node);
+    }
+
+    TODO("Render frames as animation!");
   }
 
   resize() {
@@ -195,11 +225,10 @@ export class SVGRenderer implements Renderer {
     });
   }
 
-  static AddNode(element: Element) {
+  static AddNode(node: SVGNode) {
     SVGRenderer.AssertInit();
-
-    SVGRenderer.nodes.push(element);
-    SVGRenderer.viewport.appendChild(element);
+    SVGRenderer.nodes.push(node);
+    // SVGRenderer.viewport.appendChild(node.toElement());
   }
 
   static Render() {
@@ -209,8 +238,16 @@ export class SVGRenderer implements Renderer {
     SVGRenderer.renderContainerEl.appendChild(SVGRenderer.viewport);
 
     for (const node of SVGRenderer.nodes) {
-      SVGRenderer.viewport.appendChild(node);
+      node.drawConnections(SVGRenderer.viewport, {
+        stroke: "white",
+        strokeWidth: 1,
+      });
     }
+
+    for (const node of SVGRenderer.nodes) {
+      SVGRenderer.viewport.appendChild(node.toElement());
+    }
+
   }
 
   static get SVG(): SVGElement {

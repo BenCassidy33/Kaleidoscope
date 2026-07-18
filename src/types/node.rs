@@ -216,7 +216,9 @@ impl From<Node> for WasmNode {
 
 impl From<&Node> for WasmNode {
     fn from(value: &Node) -> Self {
-        Self { inner: value.clone() }
+        Self {
+            inner: value.clone(),
+        }
     }
 }
 
@@ -247,4 +249,112 @@ impl WasmNode {
             _ => Ok(self),
         }
     }
+
+    pub fn inner(&self) -> WasmNodeInner {
+        self.inner.clone().into()
+    }
 }
+
+#[wasm_bindgen]
+#[derive(Debug, Clone, Serialize, derive_more::Display)]
+pub enum WasmNodeInnerKind {
+    Variable,
+    Abstraction,
+    Application,
+}
+
+pub fn wasm_node_inner_kind_is_variable(inner: WasmNodeInnerKind) -> bool {
+    matches!(inner, WasmNodeInnerKind::Variable)
+}
+
+pub fn wasm_node_inner_kind_is_abstraction(inner: WasmNodeInnerKind) -> bool {
+    matches!(inner, WasmNodeInnerKind::Abstraction)
+}
+
+pub fn wasm_node_inner_kind_is_application(inner: WasmNodeInnerKind) -> bool {
+    matches!(inner, WasmNodeInnerKind::Application)
+}
+
+
+#[wasm_bindgen(js_name = wasmNodeInnerKindToString)]
+pub fn wasm_node_inner_kind_to_js_string(inner: WasmNodeInnerKind) -> String {
+    format!("{}", inner)
+}
+
+// TODO: Make this an actual error type
+#[wasm_bindgen(js_name = wasmNodeInnerKindtoJson)]
+pub fn to_json(inner: WasmNodeInnerKind, pretty: bool) -> Option<String> {
+    if pretty {
+        return serde_json::to_string_pretty(&inner).ok();
+    }
+
+    serde_json::to_string(&inner).ok()
+}
+
+#[wasm_bindgen]
+#[derive(Debug, Clone, Serialize)]
+pub struct WasmNodeInner {
+    kind: WasmNodeInnerKind,
+    variable: Option<VariableNode>,
+    abstraction: Option<AbstractionNode>,
+    application: Option<ApplicationNode>,
+}
+
+#[wasm_bindgen]
+impl WasmNodeInner {
+    pub fn kind(&self) -> WasmNodeInnerKind {
+        self.kind.clone()
+    }
+
+    pub fn is_variable(&self) -> bool {
+        self.variable.is_some()
+    }
+
+    pub fn is_abstraction(&self) -> bool {
+        self.abstraction.is_some()
+    }
+
+    pub fn is_application(&self) -> bool {
+        self.application.is_some()
+    }
+
+    pub fn variable(&self) -> VariableNode {
+        self.variable.clone().unwrap()
+    }
+
+    pub fn abstraction(&self) -> AbstractionNode {
+        self.abstraction.clone().unwrap()
+    }
+
+    pub fn application(&self) -> ApplicationNode {
+        self.application.clone().unwrap()
+    }
+}
+
+impl From<Node> for WasmNodeInner {
+    fn from(value: Node) -> Self {
+        match value {
+            Node::Variable(variable_node) => Self {
+                kind: WasmNodeInnerKind::Variable,
+                variable: Some(variable_node),
+                abstraction: None,
+                application: None,
+            },
+
+            Node::Abstraction(abstraction_node) => Self {
+                kind: WasmNodeInnerKind::Variable,
+                variable: None,
+                abstraction: Some(abstraction_node),
+                application: None,
+            },
+
+            Node::Application(application_node) => Self {
+                kind: WasmNodeInnerKind::Application,
+                variable: None,
+                abstraction: None,
+                application: Some(application_node)
+            },
+        }
+    }
+}
+

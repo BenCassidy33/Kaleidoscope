@@ -5,9 +5,11 @@ import {
   ReductionError,
   wasm_interpret_raw,
   WasmAssignment,
+  WasmFrames,
   WasmNode,
 } from "../build/pkg/kaleidoscope";
 import { mathFieldsContainer } from "./elements";
+import { RenderHandler } from "./renderers/renderHandler";
 
 export type ExpressionEntry = {
   fieldId: number;
@@ -100,14 +102,12 @@ export class LambdaHandler {
   }
 
   static NormalizeLatex(latex: string): string {
-    console.log(latex);
     let s = latex
       .replace(/\\left/g, "")
       .replace(/\\right/g, "")
       .replace(/\\l/g, "L")
       .replace(/\\coloneq/g, ":=")
       .replace(/\s+/g, "");
-    console.log(s);
 
     return s;
   }
@@ -129,17 +129,26 @@ export class LambdaHandler {
       return;
     }
 
-    let frames;
+    let wasm_frames;
     try {
-      if (!(frames = wasm_interpret_raw(allExpressions))) {
+      if (!(wasm_frames = wasm_interpret_raw(allExpressions))) {
         console.log("No statements could be reduced!");
         return;
-      };
+      }
     } catch (e) {
       // @ts-ignore
-      console.error(`Error when interpreting expressions! ${e.toJson()}`)
+      console.error(`Error when interpreting expressions! ${e.toJson()}`);
     }
 
-    console.log(frames?.toJson(), frames?.getFrames());
+    const framesArray: Array<WasmNode[]> = [];
+    const rawFrames = wasm_frames!.getFrames();
+    const frameLengths = wasm_frames!.getFrameLengths();
+
+    for (const length of frameLengths) {
+      framesArray.push(rawFrames.splice(0, length));
+    }
+
+    if (framesArray.length == 0) return;
+    RenderHandler.renderFrames(framesArray[framesArray.length - 1]!);
   }
 }

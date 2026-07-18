@@ -147,8 +147,23 @@ impl ApplicationNode {
             (Node::Abstraction(ab), other) => ab.clone().reduce(other.clone(), None),
             (other, Node::Abstraction(ab)) => ab.clone().reduce(other.clone(), None),
 
-            (Node::Application(ap), other) => ap.clone().reduce(other.clone(), None),
-            (other, Node::Application(ap)) => ap.clone().reduce(other.clone(), None),
+            (Node::Application(ap), other) => {
+                let new = ap.clone().reduce(other.clone(), None)?;
+                if *self.left == new {
+                    return Ok(self.into());
+                }
+
+                Ok(new)
+            },
+            (other, Node::Application(ap)) => {
+                let new = ap.clone().reduce(other.clone(), None)?;
+                if *self.right == new {
+                    return Ok(self.into());
+                }
+
+                Ok(new)
+            },
+
 
             _ => Ok(self.into()),
         }

@@ -7,8 +7,6 @@ use kaleidoscope::{
     Lambda, UnwrapExpressions, UnzipExpressions, args::{Args, Subcommands}, repl::run_repl,
 };
 
-// TODO: Inline this for actual releases
-#[inline]
 fn do_stuff() -> miette::Result<()> {
     let args = Args::parse();
 
@@ -23,8 +21,10 @@ fn do_stuff() -> miette::Result<()> {
 }
 
 fn main() -> miette::Result<()> {
-    let input = r#"yz(Lm.(Lx.xm))"#;
+    // do_stuff()?;
+    let input = r#"xyz"#;
 
+    // let input = r#"yz(Lm.(Lx.xm))"#;
     let expressions = Lambda::parse(input);
     kaleidoscope::interpreter::interpret(expressions.unwrap_expressions()?, &mut stdout())?;
 

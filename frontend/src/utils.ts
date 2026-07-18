@@ -1,3 +1,5 @@
+export const LAMBDA_CHAR: string = "λ";
+
 export function TODO(msg: string = "todo") {
   throw new Error(msg);
 }

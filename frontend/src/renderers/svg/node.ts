@@ -1,4 +1,8 @@
+import { type WasmNode } from "../../../build/pkg/kaleidoscope";
 import { SVG_NS_URL, SVGRenderer } from "./svg";
+
+const X_NODE_SEPERATION: number = 50;
+const Y_NODE_SEPERATION: number = 80;
 
 type SVGCircleAttrs = {
   cx?: number;
@@ -21,7 +25,11 @@ export class RawSVG {
   }
 }
 
-const CASE_SENSITIVE_ATTRS = new Set(["viewBox", "preserveAspectRatio", "patternUnits"]);
+const CASE_SENSITIVE_ATTRS = new Set([
+  "viewBox",
+  "preserveAspectRatio",
+  "patternUnits",
+]);
 
 export class SVGNode {
   left: SVGNode | undefined;
@@ -38,23 +46,29 @@ export class SVGNode {
     attributes: Partial<SVGCircleAttrs> = {
       cx: 0,
       cy: 0,
-      r: 50,
-      fill: "lightblue",
+      r: 25,
+      fill: "white",
       stroke: "black",
       strokeWidth: "4",
     },
     inner?: SVGNode | SVGElement,
     left?: SVGNode,
     right?: SVGNode,
+    normalize: boolean = true,
   ) {
     this.attributes = attributes;
     this.left = left;
     this.right = right;
     if (inner) this.setInner(inner);
 
-    let { x, y } = SVGNode.NormalizePosition(attributes.cx!, attributes.cy!);
-    this.cx = x;
-    this.cy = y;
+    if (normalize) {
+      let { x, y } = SVGNode.NormalizePosition(attributes.cx!, attributes.cy!);
+      this.cx = x;
+      this.cy = y;
+    } else {
+      this.cx = attributes.cx!;
+      this.cy = attributes.cy!;
+    }
 
     this.el = this.toElement();
   }
@@ -87,9 +101,6 @@ export class SVGNode {
       ...this.attributes,
       cx: x,
       cy: y,
-      fill: "lightblue",
-      stroke: "black",
-      strokeWidth: "4",
     });
 
     if (this.inner) {
@@ -106,7 +117,7 @@ export class SVGNode {
       return group;
     }
 
-    circle.classList.add("svgNode")
+    circle.classList.add("svgNode");
     return circle;
   }
 
@@ -115,13 +126,20 @@ export class SVGNode {
     return this.el;
   }
 
-  setInner(inner: SVGNode | SVGElement) {
+  setInner(inner: SVGNode | SVGElement, isNormalized: boolean = true) {
     if (inner instanceof SVGElement) {
-      SVGNode.setAttributes(inner, {
-        x: this.cx,
-        y: this.cy,
-      });
-
+      if (isNormalized) {
+        SVGNode.setAttributes(inner, {
+          x: this.cx,
+          y: this.cy,
+        });
+      } else {
+        const { x, y } = SVGNode.NormalizePosition(this.cx, this.cy);
+        SVGNode.setAttributes(inner, {
+          x: x,
+          y: y,
+        });
+      }
       this.inner = inner;
     } else {
       inner.cx = this.cx;
@@ -129,5 +147,146 @@ export class SVGNode {
 
       this.inner = inner;
     }
+  }
+
+  drawConnections(viewport: SVGElement, attributes: Object) {
+    if (this.left) {
+      let root = SVGNode.NormalizePosition(this.cx, this.cy);
+      let left = SVGNode.NormalizePosition(this.left.cx, this.left.cy);
+      const line = document.createElementNS(SVG_NS_URL, "line") as SVGLineElement;
+      line.classList.add("connecting-line")
+
+      SVGNode.setAttributes(line, {
+        x1: root.x,
+        x2: left.x,
+        y1: root.y,
+        y2: left.y,
+        ...attributes
+      })
+
+      viewport.appendChild(line);
+    }
+
+    if (this.right) {
+      let root = SVGNode.NormalizePosition(this.cx, this.cy);
+      let right = SVGNode.NormalizePosition(this.right.cx, this.right.cy);
+      const line = document.createElementNS(SVG_NS_URL, "line") as SVGLineElement;
+      line.classList.add("connecting-line")
+
+      SVGNode.setAttributes(line, {
+        x1: root.x,
+        x2: right.x,
+        y1: root.y,
+        y2: right.y,
+        ...attributes
+      })
+
+      viewport.appendChild(line);
+    }
+  }
+
+  static CreateTextElement(innerText: string): SVGTextElement {
+    const text = document.createElementNS(SVG_NS_URL, "text") as SVGTextElement;
+    text.classList.add("node-text");
+    text.textContent = innerText;
+
+    SVGNode.setAttributes(text, {
+      textAnchor: "middle",
+      dominantBaseline: "middle",
+    });
+
+    return text;
+  }
+
+  static FromWasmNode(
+    node: WasmNode,
+    depth: number = 1,
+    parent?: SVGNode,
+    isLeft: boolean = false,
+  ): SVGNode | void {
+    const x = isLeft ? -1 : 1;
+    const pos = (parent ? parent.cx : 0) + x * X_NODE_SEPERATION;
+    console.log(parent?.cx, pos, isLeft);
+
+    let svg_node = new SVGNode(
+      {
+        cx: pos,
+        cy: Y_NODE_SEPERATION * (depth * 0.8),
+        r: 30,
+        fill: "white",
+        stroke: "none",
+        strokeWidth: "0",
+      },
+      undefined,
+      undefined,
+      undefined,
+      false,
+    );
+
+    const node_inner = node.inner();
+
+    if (node_inner.is_variable()) {
+      const variable = node_inner.variable();
+
+      svg_node.setInner(SVGNode.CreateTextElement(variable.ident), false);
+      return svg_node;
+    }
+
+    if (node_inner.is_application()) {
+      const application = node_inner.application();
+      const text = SVGNode.CreateTextElement(application.toString());
+      svg_node.setInner(text, false);
+
+      const left = SVGNode.FromWasmNode(
+        application.left,
+        depth + 1,
+        svg_node,
+        true,
+      );
+
+      const right = SVGNode.FromWasmNode(
+        application.right,
+        depth + 1,
+        svg_node,
+        false,
+      );
+
+      if (left) {
+        svg_node.left = left;
+      }
+
+      if (right) {
+        svg_node.right = right;
+      }
+
+      return svg_node;
+    }
+
+    const abstraction = node_inner.abstraction();
+    svg_node.setInner(SVGNode.CreateTextElement(abstraction.toString()), false);
+
+    const left = SVGNode.FromWasmNode(
+      abstraction.bound,
+      depth + 1,
+      svg_node,
+      true,
+    );
+
+    const right = SVGNode.FromWasmNode(
+      abstraction.body,
+      depth + 1,
+      svg_node,
+      false,
+    );
+
+    if (left) {
+      svg_node.left = left;
+    }
+
+    if (right) {
+      svg_node.right = right;
+    }
+
+    return svg_node;
   }
 }
