@@ -1,10 +1,11 @@
 import { type WasmNode } from "../../../build/pkg/kaleidoscope";
 import { SVG_NS_URL, SVGRenderer } from "./svg";
 
-const X_NODE_SEPERATION: number = 50;
+const X_NODE_SEPERATION: number = 80;
 const Y_NODE_SEPERATION: number = 80;
 
 type SVGCircleAttrs = {
+  id?: string;
   cx?: number;
   cy?: number;
   r?: number;
@@ -153,16 +154,19 @@ export class SVGNode {
     if (this.left) {
       let root = SVGNode.NormalizePosition(this.cx, this.cy);
       let left = SVGNode.NormalizePosition(this.left.cx, this.left.cy);
-      const line = document.createElementNS(SVG_NS_URL, "line") as SVGLineElement;
-      line.classList.add("connecting-line")
+      const line = document.createElementNS(
+        SVG_NS_URL,
+        "line",
+      ) as SVGLineElement;
+      line.classList.add("connecting-line");
 
       SVGNode.setAttributes(line, {
         x1: root.x,
         x2: left.x,
         y1: root.y,
         y2: left.y,
-        ...attributes
-      })
+        ...attributes,
+      });
 
       viewport.appendChild(line);
     }
@@ -170,16 +174,19 @@ export class SVGNode {
     if (this.right) {
       let root = SVGNode.NormalizePosition(this.cx, this.cy);
       let right = SVGNode.NormalizePosition(this.right.cx, this.right.cy);
-      const line = document.createElementNS(SVG_NS_URL, "line") as SVGLineElement;
-      line.classList.add("connecting-line")
+      const line = document.createElementNS(
+        SVG_NS_URL,
+        "line",
+      ) as SVGLineElement;
+      line.classList.add("connecting-line");
 
       SVGNode.setAttributes(line, {
         x1: root.x,
         x2: right.x,
         y1: root.y,
         y2: right.y,
-        ...attributes
-      })
+        ...attributes,
+      });
 
       viewport.appendChild(line);
     }
@@ -206,10 +213,11 @@ export class SVGNode {
   ): SVGNode | void {
     const x = isLeft ? -1 : 1;
     const pos = (parent ? parent.cx : 0) + x * X_NODE_SEPERATION;
-    console.log(parent?.cx, pos, isLeft);
+    const id = Math.random() * 9_152_052;
 
     let svg_node = new SVGNode(
       {
+        id: `${id}`,
         cx: pos,
         cy: Y_NODE_SEPERATION * (depth * 0.8),
         r: 30,

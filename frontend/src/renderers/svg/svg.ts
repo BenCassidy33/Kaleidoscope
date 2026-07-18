@@ -1,4 +1,4 @@
-import type { WasmFrames, WasmNode } from "../../../build/pkg/kaleidoscope";
+import type { WasmNode } from "../../../build/pkg/kaleidoscope";
 import { TODO } from "../../utils";
 import { type Renderer } from "../renderHandler";
 import { SVGNode } from "./node";
@@ -231,11 +231,7 @@ export class SVGRenderer implements Renderer {
     // SVGRenderer.viewport.appendChild(node.toElement());
   }
 
-  static Render() {
-    SVGRenderer.AssertInit();
-
-    SVGRenderer.renderContainerEl.innerHTML = "";
-    SVGRenderer.renderContainerEl.appendChild(SVGRenderer.viewport);
+  static RenderConnections() {
 
     for (const node of SVGRenderer.nodes) {
       node.drawConnections(SVGRenderer.viewport, {
@@ -244,8 +240,48 @@ export class SVGRenderer implements Renderer {
       });
     }
 
+  }
+  // TODO: Connection SVGs need to be cleared on call to render
+  // Node movement needs to be fixed to override window movement (likely needs to be checkes in the window movement itself)
+  // Connections need to be rerendered as the node is moving around
+  // add animations for idle and movement modes
+  static Render() {
+    SVGRenderer.AssertInit();
+
+    SVGRenderer.renderContainerEl.innerHTML = "";
+    SVGRenderer.renderContainerEl.appendChild(SVGRenderer.viewport);
+
+    SVGRenderer.RenderConnections();
+
     for (const node of SVGRenderer.nodes) {
-      SVGRenderer.viewport.appendChild(node.toElement());
+      const el = node.toElement();
+      SVGRenderer.viewport.appendChild(el);
+
+      el.addEventListener("click", () => {
+        const circleNode = el.querySelector("circle")!;
+        const text = el.querySelector("text")!;
+
+        window.addEventListener("mousemove", (ev: MouseEvent) => {
+          const rect = SVGRenderer.viewport.getBoundingClientRect();
+
+          const cx = ev.clientX - rect.left;
+          const cy = ev.clientY - rect.top;
+          node.attributes.cx = cx;
+          node.attributes.cy = cy;
+
+          SVGNode.setAttributes(circleNode, {
+            cx: cx,
+            cy: cy
+          })
+
+          SVGNode.setAttributes(text, {
+            x: cx,
+            y: cy
+          })
+
+          SVGRenderer.RenderConnections();
+        })
+      })
     }
 
   }
