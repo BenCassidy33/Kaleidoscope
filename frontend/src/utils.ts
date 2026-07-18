@@ -43,14 +43,32 @@ export class Vec2 {
   }
 
   dot(rhs: Vec2) {
-    this.base.x *= rhs.base.x
-    this.base.y *= rhs.base.y
+    this.base.x *= rhs.base.x;
+    this.base.y *= rhs.base.y;
   }
 
   getPointee(): Point {
-    let x2 = this.base.x + (this.m * Math.cos(this.theta));
-    let y2 = this.base.y + (this.m * Math.sin(this.theta));
+    let x2 = this.base.x + this.m * Math.cos(this.theta);
+    let y2 = this.base.y + this.m * Math.sin(this.theta);
 
     return new Point(x2, y2);
+  }
+}
+
+export class ViewBox {
+  static Get(element: Element): {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  } {
+    const [a, b, c, d] = element.getAttribute("viewBox")!.split(" ");
+    console.log(a, b, c, d)
+    return {
+      x: parseInt(a!),
+      y: parseInt(b!),
+      width: parseInt(c!),
+      height: parseInt(d!),
+    };
   }
 }

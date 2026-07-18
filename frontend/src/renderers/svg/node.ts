@@ -1,4 +1,5 @@
 import { type WasmNode } from "../../../build/pkg/kaleidoscope";
+import { ViewBox } from "../../utils";
 import { SVG_NS_URL, SVGRenderer } from "./svg";
 
 const X_NODE_SEPERATION: number = 80;
@@ -63,9 +64,9 @@ export class SVGNode {
     if (inner) this.setInner(inner);
 
     if (normalize) {
-      let { x, y } = SVGNode.NormalizePosition(attributes.cx!, attributes.cy!);
-      this.cx = x;
-      this.cy = y;
+      // let { x, y } = SVGNode.NormalizePosition(attributes.cx!, attributes.cy!);
+      this.cx = attributes.cx!;
+      this.cy = attributes.cy!;
     } else {
       this.cx = attributes.cx!;
       this.cy = attributes.cy!;
@@ -74,11 +75,21 @@ export class SVGNode {
     this.el = this.toElement();
   }
 
-  static NormalizePosition(x: number, y: number): { x: number; y: number } {
-    return {
-      x: x + SVGRenderer.ClientWidth / 2,
-      y: y + SVGRenderer.ClientHeight / 2,
-    };
+  // static NormalizePosition(x: number, y: number): { x: number; y: number } {
+  //   const rect = SVGRenderer.viewport.getBoundingClientRect();
+  //   return {
+  //     x: x,
+  //     y: y
+  //   };
+  //
+  //   return {
+  //     x: x + SVGRenderer.ClientWidth / 2,
+  //     y: y + SVGRenderer.ClientHeight / 2,
+  //   };
+  // }
+
+  static RealizePosition(x: number, y: number): [number, number] {
+    return [x - SVGRenderer.ClientWidth / 2, y - SVGRenderer.ClientWidth / 2];
   }
 
   static setAttributes(e: Element, attributes: Object) {
@@ -92,16 +103,17 @@ export class SVGNode {
 
   toElement(): Element {
     const circle = document.createElementNS(SVG_NS_URL, "circle");
-    let { x, y } = SVGNode.NormalizePosition(
-      //@ts-ignore
-      this.attributes.cx!,
-      this.attributes.cy!,
-    );
+    // let { x, y } = SVGNode.NormalizePosition(
+    //   //@ts-ignore
+    //   this.attributes.cx!,
+    //   this.attributes.cy!,
+    // );
+
 
     SVGNode.setAttributes(circle, {
       ...this.attributes,
-      cx: x,
-      cy: y,
+      cx: this.attributes.cx!,
+      cy: this.attributes.cy!,
     });
 
     if (this.inner) {
@@ -135,10 +147,9 @@ export class SVGNode {
           y: this.cy,
         });
       } else {
-        const { x, y } = SVGNode.NormalizePosition(this.cx, this.cy);
         SVGNode.setAttributes(inner, {
-          x: x,
-          y: y,
+          x: this.cx,
+          y: this.cy,
         });
       }
       this.inner = inner;
@@ -152,8 +163,6 @@ export class SVGNode {
 
   drawConnections(viewport: SVGElement, attributes: Object) {
     if (this.left) {
-      let root = SVGNode.NormalizePosition(this.cx, this.cy);
-      let left = SVGNode.NormalizePosition(this.left.cx, this.left.cy);
       const line = document.createElementNS(
         SVG_NS_URL,
         "line",
@@ -161,10 +170,10 @@ export class SVGNode {
       line.classList.add("connecting-line");
 
       SVGNode.setAttributes(line, {
-        x1: root.x,
-        x2: left.x,
-        y1: root.y,
-        y2: left.y,
+        x1: this.cx,
+        x2: this.left.cx,
+        y1: this.cy,
+        y2: this.left.cy,
         ...attributes,
       });
 
@@ -172,8 +181,6 @@ export class SVGNode {
     }
 
     if (this.right) {
-      let root = SVGNode.NormalizePosition(this.cx, this.cy);
-      let right = SVGNode.NormalizePosition(this.right.cx, this.right.cy);
       const line = document.createElementNS(
         SVG_NS_URL,
         "line",
@@ -181,10 +188,10 @@ export class SVGNode {
       line.classList.add("connecting-line");
 
       SVGNode.setAttributes(line, {
-        x1: root.x,
-        x2: right.x,
-        y1: root.y,
-        y2: right.y,
+        x1: this.cx,
+        x2: this.right.cx,
+        y1: this.cy,
+        y2: this.right.cy,
         ...attributes,
       });
 

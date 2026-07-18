@@ -9,20 +9,6 @@
   </head>
   <body>
     <main>
-      <template id="math-input-template">
-        <div class="math-input-container">
-          <div class="math-field-controls">
-            <div class="math-field-close math-field-control">
-              <object
-                class="math-field-control-close"
-                data="/svgs/cross.svg"
-                type="image/svg+xml"
-              ></object>
-            </div>
-          </div>
-        </div>
-      </template>
-
       <div id="math-inputs-list">
         <div id="add-new-math-input">+</div>
       </div>
@@ -34,6 +20,10 @@
             data="/svgs/play.svg"
             type="image/svg+xml"
           ></object>
+        </div>
+
+        <div id="reset-viewport-button" class=control-button>
+          <object class="reduce-button-svg" data="/svgs/reset.svg" type="image/svg+xml"></object>
         </div>
       </div>
 
@@ -52,5 +42,23 @@
 
       <div id="render-area"></div>
     </main>
+
+      <template id="math-input-template">
+        <div class="math-input-container">
+          <div class="math-field-controls">
+            <div class="math-field-close math-field-control">
+              <object
+                class="math-field-control-close"
+                data="/svgs/cross.svg"
+                type="image/svg+xml"
+              ></object>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <template id="tooltip-template">
+        <div></div>
+      </template>
   </body>
 </html>

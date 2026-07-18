@@ -1,5 +1,5 @@
 import type { WasmNode } from "../../../build/pkg/kaleidoscope";
-import { TODO } from "../../utils";
+import { TODO, ViewBox } from "../../utils";
 import { type Renderer } from "../renderHandler";
 import { SVGNode } from "./node";
 
@@ -17,6 +17,8 @@ export class SVGRenderer implements Renderer {
   private static m_viewportStartX: number;
   private static m_viewportStartY: number;
 
+  private static isHoldingNode: boolean = false;
+
   setup() {
     SVGRenderer.Init();
   }
@@ -33,6 +35,11 @@ export class SVGRenderer implements Renderer {
     SVGRenderer.Render();
   }
 
+  reset() {
+    SVGRenderer.ResetViewport();
+    SVGRenderer.RedrawBackground();
+  }
+
   static FlattenNodes(node: SVGNode | undefined): SVGNode[] {
     if (!node) {
       return [];
@@ -46,7 +53,6 @@ export class SVGRenderer implements Renderer {
   }
 
   renderFrames(frames: WasmNode[]) {
-    console.log(frames[1]?.toJson(true));
     for (const wasm_node of frames) {
       SVGRenderer.nodes = [];
       SVGRenderer.viewport.querySelectorAll("g").forEach((g) => g.remove());
@@ -212,26 +218,76 @@ export class SVGRenderer implements Renderer {
     this.m_clientStartX = ev.clientX;
     this.m_clientStartY = ev.clientY;
 
-    SVGRenderer.renderContainerEl.addEventListener(
-      "mousemove",
-      SVGRenderer.HandleMouseMove,
-    );
-
-    SVGRenderer.renderContainerEl.addEventListener("mouseup", () => {
-      SVGRenderer.renderContainerEl.removeEventListener(
+    if (SVGRenderer.isHoldingNode) {
+    } else {
+      SVGRenderer.renderContainerEl.addEventListener(
         "mousemove",
         SVGRenderer.HandleMouseMove,
       );
+      SVGRenderer.renderContainerEl.addEventListener("mouseup", () => {
+        SVGRenderer.renderContainerEl.removeEventListener(
+          "mousemove",
+          SVGRenderer.HandleMouseMove,
+        );
+      });
+    }
+  }
+
+  static HandleHeldNodeMove(node: SVGNode, el: Element) {
+    const circleNode = el.querySelector("circle")!;
+    const text = el.querySelector("text")!;
+
+    const onMove = (ev: MouseEvent) => {
+      SVGRenderer.HandleHeldNodeMovedInner(ev, node, circleNode, text);
+    };
+
+    window.addEventListener("mousemove", onMove);
+
+    window.addEventListener("mouseup", () => {
+      SVGRenderer.HandleNodeReleased(node, el);
+      window.removeEventListener("mousemove", onMove);
     });
+  }
+
+  static HandleHeldNodeMovedInner(
+    ev: MouseEvent,
+    node: SVGNode,
+    circleNode: SVGCircleElement,
+    text: SVGTextElement,
+  ) {
+    const rect = SVGRenderer.viewport.getBoundingClientRect();
+    const viewbox = ViewBox.Get(this.viewport as Element);
+
+    const cx = ev.clientX - rect.left + viewbox.x;
+    const cy = ev.clientY - rect.top + viewbox.y;
+
+    node.cx = cx;
+    node.cy = cy;
+
+    SVGNode.setAttributes(circleNode, {
+      cx: cx,
+      cy: cy,
+    });
+
+    SVGNode.setAttributes(text, {
+      x: cx,
+      y: cy,
+    });
+
+    SVGRenderer.RenderConnections();
+  }
+
+  static HandleNodeReleased(node: SVGNode, el: Element) {
+    this.isHoldingNode = false;
   }
 
   static AddNode(node: SVGNode) {
     SVGRenderer.AssertInit();
     SVGRenderer.nodes.push(node);
-    // SVGRenderer.viewport.appendChild(node.toElement());
   }
 
   static RenderConnections() {
+    document.querySelectorAll(".connecting-line").forEach(l => l.remove())
 
     for (const node of SVGRenderer.nodes) {
       node.drawConnections(SVGRenderer.viewport, {
@@ -239,7 +295,6 @@ export class SVGRenderer implements Renderer {
         strokeWidth: 1,
       });
     }
-
   }
   // TODO: Connection SVGs need to be cleared on call to render
   // Node movement needs to be fixed to override window movement (likely needs to be checkes in the window movement itself)
@@ -257,33 +312,11 @@ export class SVGRenderer implements Renderer {
       const el = node.toElement();
       SVGRenderer.viewport.appendChild(el);
 
-      el.addEventListener("click", () => {
-        const circleNode = el.querySelector("circle")!;
-        const text = el.querySelector("text")!;
-
-        window.addEventListener("mousemove", (ev: MouseEvent) => {
-          const rect = SVGRenderer.viewport.getBoundingClientRect();
-
-          const cx = ev.clientX - rect.left;
-          const cy = ev.clientY - rect.top;
-          node.attributes.cx = cx;
-          node.attributes.cy = cy;
-
-          SVGNode.setAttributes(circleNode, {
-            cx: cx,
-            cy: cy
-          })
-
-          SVGNode.setAttributes(text, {
-            x: cx,
-            y: cy
-          })
-
-          SVGRenderer.RenderConnections();
-        })
-      })
+      el.addEventListener("mousedown", () => {
+        this.isHoldingNode = true;
+        SVGRenderer.HandleHeldNodeMove(node, el);
+      });
     }
-
   }
 
   static get SVG(): SVGElement {

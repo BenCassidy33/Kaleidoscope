@@ -12,6 +12,7 @@ export interface Renderer {
   renderNode(node: WasmNode): void;
   renderFrames(node: WasmNode[]): void;
   resize(): void;
+  reset(): void;
 }
 
 export class RenderHandler {
@@ -28,6 +29,10 @@ export class RenderHandler {
     }
 
     RenderHandler.renderer.setup();
+  }
+
+  static Reset() {
+    this.renderer.reset();
   }
 
   static Register(renderer: new () => Renderer, name: string) {

@@ -133,7 +133,8 @@ main {
   position: absolute;
   top: 15px;
   right: 15px;
-  height: $floating-element-height;
+  min-height: $floating-element-height;
+  width: 36px;
   background-color: $layer-1-color;
   border-radius: $border-radius;
   display: flex;
@@ -142,11 +143,15 @@ main {
   justify-content: space-evenly;
   padding: 10px;
   border: $border;
-  aspect-ratio: 1;
+}
+
+#controls>* {
+  margin-top: 10px;
+  margin-bottom: 10px;
+  width: 80%;
 }
 
 .control-button {
-  width: 80%;
   aspect-ratio: 1;
   background-color: $layer-1-color;
   cursor: pointer;
