@@ -1,5 +1,5 @@
 import type { WasmNode } from "../../../build/pkg/kaleidoscope";
-import { TODO, ViewBox } from "../../utils";
+import { Point, TODO, Utils, ViewBox } from "../../utils";
 import { type Renderer } from "../renderHandler";
 import { SVGNode } from "./node";
 
@@ -235,45 +235,54 @@ export class SVGRenderer implements Renderer {
   }
 
   static HandleHeldNodeMove(node: SVGNode, el: Element) {
-    console.log("node = ", node);
     node.shouldNodeAnimationPlay = false;
 
+    const circleNode = node.toElement().querySelector("circle")!;
+    const text = node.toElement().querySelector("text")!;
+
+    const startX = node.cx;
+    const startY = node.cy;
+    let targetX = node.cx;
+    let targetY = node.cy;
+
     const onMove = (ev: MouseEvent) => {
-      SVGRenderer.HandleHeldNodeMovedInner(ev, node);
+      const rect = SVGRenderer.viewport.getBoundingClientRect();
+      const viewbox = ViewBox.Get(this.viewport as Element);
+
+      targetX = ev.clientX - rect.left + viewbox.x;
+      targetY = ev.clientY - rect.top + viewbox.y;
     };
 
     window.addEventListener("mousemove", onMove);
 
+    let isRunning = true;
+
+    const lag = 0.12;
+
+    const step = () => {
+      if (!isRunning) return;
+
+      node.cx += (targetX - node.cx) * lag;
+      node.cy += (targetY - node.cy) * lag;
+
+      SVGNode.setAttributes(circleNode, { cx: node.cx, cy: node.cy });
+      SVGNode.setAttributes(text, { x: node.cx, y: node.cy });
+
+      SVGRenderer.RenderConnections();
+
+      requestAnimationFrame(step);
+    };
+
+    requestAnimationFrame(step);
+
     window.addEventListener("mouseup", () => {
-      SVGRenderer.HandleNodeReleased(node, el);
+      isRunning = false;
       window.removeEventListener("mousemove", onMove);
-    });
+      SVGRenderer.HandleNodeReleased(node, el);
+    })
   }
 
-  static HandleHeldNodeMovedInner(ev: MouseEvent, node: SVGNode) {
-    const circleNode = node.toElement().querySelector("circle")!;
-    const text = node.toElement().querySelector("text")!;
-    const rect = SVGRenderer.viewport.getBoundingClientRect();
-    const viewbox = ViewBox.Get(this.viewport as Element);
-
-    const cx = ev.clientX - rect.left + viewbox.x;
-    const cy = ev.clientY - rect.top + viewbox.y;
-
-    node.cx = cx;
-    node.cy = cy;
-
-    SVGNode.setAttributes(circleNode, {
-      cx: cx,
-      cy: cy,
-    });
-
-    SVGNode.setAttributes(text, {
-      x: cx,
-      y: cy,
-    });
-
-    SVGRenderer.RenderConnections();
-  }
+  static HandleHeldNodeMovedInner(ev: MouseEvent, node: SVGNode) {}
 
   static HandleNodeReleased(node: SVGNode, _: Element) {
     node.shouldNodeAnimationPlay = true;
@@ -298,7 +307,7 @@ export class SVGRenderer implements Renderer {
     if (backgroundRect && backgroundRect.nextSibling) {
       SVGRenderer.viewport.insertBefore(g, backgroundRect.nextSibling);
     } else {
-      SVGRenderer.viewport.appendChild(g)
+      SVGRenderer.viewport.appendChild(g);
     }
 
     for (const node of SVGRenderer.nodes) {
@@ -315,7 +324,6 @@ export class SVGRenderer implements Renderer {
       SVGRenderer.viewport.appendChild(el);
 
       el.addEventListener("mousedown", () => {
-        console.log("node = ", node);
         node.shouldNodeAnimationPlay = false;
         this.isHoldingNode = true;
 
@@ -324,10 +332,6 @@ export class SVGRenderer implements Renderer {
     }
   }
 
-  // TODO: Connection SVGs need to be cleared on call to render
-  // Node movement needs to be fixed to override window movement (likely needs to be checkes in the window movement itself)
-  // Connections need to be rerendered as the node is moving around
-  // add animations for idle and movement modes
   static Render(shouldAnimate: boolean = true) {
     SVGRenderer.AssertInit();
     SVGRenderer.renderContainerEl.innerHTML = "";
@@ -360,7 +364,6 @@ export class SVGRenderer implements Renderer {
 
   static StartNodeAnimations() {
     for (const node of SVGRenderer.nodes) {
-      console.log(node);
       node.startAnimation();
     }
   }

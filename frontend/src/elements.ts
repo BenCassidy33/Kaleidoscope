@@ -47,7 +47,6 @@ export function setSelectedOption(name: string) {
   rendererSelectionOptions = document.querySelectorAll<HTMLDivElement>(
     ".renderer-selection-option",
   )!;
-  console.log(Array.from(rendererSelectionOptions));
   for (const opt of rendererSelectionOptions) {
     if (opt.getAttribute("renderer-name") == name) {
       opt.setAttribute("selected", "true");

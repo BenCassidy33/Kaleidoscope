@@ -90,7 +90,6 @@ export class LambdaHandler {
       return;
     }
 
-    console.log(item.toString());
     try {
       item = item.reduce();
     } catch (e) {
@@ -98,7 +97,6 @@ export class LambdaHandler {
       console.log(`Reduction Error: ${(e as ReductionError).toJson()}`);
       return;
     }
-    console.log(item.toString());
   }
 
   static NormalizeLatex(latex: string): string {

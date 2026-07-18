@@ -36,8 +36,6 @@ export class RenderHandler {
   }
 
   static Register(renderer: new () => Renderer, name: string) {
-    console.log(Array.from(this.registeredRenderers.keys()), name)
-
     if (Array.from(this.registeredRenderers.keys()).indexOf(name) != -1) {
       this.registeredRenderers.set(name, renderer);
       return;

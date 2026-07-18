@@ -100,7 +100,6 @@ export class SVGNode {
       cy: this.attributes.cy!,
     });
 
-    console.log("this.inner = ", this.inner);
     if (this.inner !== undefined) {
       const group = document.createElementNS(SVG_NS_URL, "g");
       group.appendChild(circle);
@@ -142,7 +141,7 @@ export class SVGNode {
     this.el = this.toElement();
   }
 
-  drawConnections(group: Element, attributes: Object) {
+  drawConnections(group: SVGElement, attributes: Object) {
     if (this.left) {
       const line = document.createElementNS(
         SVG_NS_URL,
