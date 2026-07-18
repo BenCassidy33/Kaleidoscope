@@ -63,7 +63,6 @@ export class ViewBox {
     height: number;
   } {
     const [a, b, c, d] = element.getAttribute("viewBox")!.split(" ");
-    console.log(a, b, c, d)
     return {
       x: parseInt(a!),
       y: parseInt(b!),

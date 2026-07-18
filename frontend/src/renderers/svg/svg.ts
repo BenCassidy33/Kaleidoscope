@@ -61,8 +61,6 @@ export class SVGRenderer implements Renderer {
       SVGRenderer.viewport.querySelectorAll("g").forEach((g) => g.remove());
       this.renderNode(wasm_node);
     }
-
-    TODO("Render frames as animation!");
   }
 
   resize() {
@@ -237,12 +235,11 @@ export class SVGRenderer implements Renderer {
   }
 
   static HandleHeldNodeMove(node: SVGNode, el: Element) {
+    console.log("node = ", node);
     node.shouldNodeAnimationPlay = false;
-    const circleNode = el.querySelector("circle")!;
-    const text = el.querySelector("text")!;
 
     const onMove = (ev: MouseEvent) => {
-      SVGRenderer.HandleHeldNodeMovedInner(ev, node, circleNode, text);
+      SVGRenderer.HandleHeldNodeMovedInner(ev, node);
     };
 
     window.addEventListener("mousemove", onMove);
@@ -253,12 +250,9 @@ export class SVGRenderer implements Renderer {
     });
   }
 
-  static HandleHeldNodeMovedInner(
-    ev: MouseEvent,
-    node: SVGNode,
-    circleNode: SVGCircleElement,
-    text: SVGTextElement,
-  ) {
+  static HandleHeldNodeMovedInner(ev: MouseEvent, node: SVGNode) {
+    const circleNode = node.toElement().querySelector("circle")!;
+    const text = node.toElement().querySelector("text")!;
     const rect = SVGRenderer.viewport.getBoundingClientRect();
     const viewbox = ViewBox.Get(this.viewport as Element);
 
@@ -284,6 +278,7 @@ export class SVGRenderer implements Renderer {
   static HandleNodeReleased(node: SVGNode, _: Element) {
     node.shouldNodeAnimationPlay = true;
     this.isHoldingNode = false;
+    node.startAnimation();
   }
 
   static AddNode(node: SVGNode) {
@@ -291,37 +286,56 @@ export class SVGRenderer implements Renderer {
     SVGRenderer.nodes.push(node);
   }
 
+  /// TODO: redo this so that the nodes get updated in place instead of removed and readded
   static RenderConnections() {
-    document.querySelectorAll(".connecting-line").forEach(l => l.remove())
+    document.querySelector("#connection-line-group")?.remove();
+
+    const g = document.createElementNS(SVG_NS_URL, "g") as SVGGElement;
+    g.id = "connection-line-group";
+
+    const backgroundRect = document.querySelector("#background-rect");
+
+    if (backgroundRect && backgroundRect.nextSibling) {
+      SVGRenderer.viewport.insertBefore(g, backgroundRect.nextSibling);
+    } else {
+      SVGRenderer.viewport.appendChild(g)
+    }
 
     for (const node of SVGRenderer.nodes) {
-      node.drawConnections(SVGRenderer.viewport, {
+      node.drawConnections(g, {
         stroke: "white",
         strokeWidth: 1,
       });
     }
   }
-  // TODO: Connection SVGs need to be cleared on call to render
-  // Node movement needs to be fixed to override window movement (likely needs to be checkes in the window movement itself)
-  // Connections need to be rerendered as the node is moving around
-  // add animations for idle and movement modes
-  static Render() {
-    SVGRenderer.AssertInit();
 
-    SVGRenderer.renderContainerEl.innerHTML = "";
-    SVGRenderer.renderContainerEl.appendChild(SVGRenderer.viewport);
-
-    SVGRenderer.RenderConnections();
-
+  static RenderNodes() {
     for (const node of SVGRenderer.nodes) {
       const el = node.toElement();
       SVGRenderer.viewport.appendChild(el);
 
       el.addEventListener("mousedown", () => {
+        console.log("node = ", node);
+        node.shouldNodeAnimationPlay = false;
         this.isHoldingNode = true;
+
         SVGRenderer.HandleHeldNodeMove(node, el);
       });
     }
+  }
+
+  // TODO: Connection SVGs need to be cleared on call to render
+  // Node movement needs to be fixed to override window movement (likely needs to be checkes in the window movement itself)
+  // Connections need to be rerendered as the node is moving around
+  // add animations for idle and movement modes
+  static Render(shouldAnimate: boolean = true) {
+    SVGRenderer.AssertInit();
+    SVGRenderer.renderContainerEl.innerHTML = "";
+    SVGRenderer.renderContainerEl.appendChild(SVGRenderer.viewport);
+    SVGRenderer.RenderConnections();
+    SVGRenderer.RenderNodes();
+
+    if (shouldAnimate) SVGRenderer.StartNodeAnimations();
   }
 
   static get SVG(): SVGElement {
@@ -345,6 +359,9 @@ export class SVGRenderer implements Renderer {
   }
 
   static StartNodeAnimations() {
-    new Worker("animationWorker.js")
+    for (const node of SVGRenderer.nodes) {
+      console.log(node);
+      node.startAnimation();
+    }
   }
 }

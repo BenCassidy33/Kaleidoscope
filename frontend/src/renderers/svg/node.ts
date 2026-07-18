@@ -38,7 +38,7 @@ export class SVGNode {
   inner: SVGNode | SVGElement | undefined;
 
   attributes: Partial<SVGCircleAttrs>;
-  el: Element;
+  el: Element | undefined;
 
   cx: number;
   cy: number;
@@ -73,7 +73,7 @@ export class SVGNode {
       this.cy = attributes.cy!;
     }
 
-    this.el = this.toElement();
+    // this.el = this.toElement();
   }
 
   static RealizePosition(x: number, y: number): [number, number] {
@@ -90,6 +90,8 @@ export class SVGNode {
   }
 
   toElement(): Element {
+    if (this.el) return this.el;
+
     const circle = document.createElementNS(SVG_NS_URL, "circle");
 
     SVGNode.setAttributes(circle, {
@@ -98,7 +100,8 @@ export class SVGNode {
       cy: this.attributes.cy!,
     });
 
-    if (this.inner) {
+    console.log("this.inner = ", this.inner);
+    if (this.inner !== undefined) {
       const group = document.createElementNS(SVG_NS_URL, "g");
       group.appendChild(circle);
 
@@ -121,19 +124,12 @@ export class SVGNode {
     return this.el;
   }
 
-  setInner(inner: SVGNode | SVGElement, isNormalized: boolean = true) {
+  setInner(inner: SVGNode | SVGElement) {
     if (inner instanceof SVGElement) {
-      if (isNormalized) {
-        SVGNode.setAttributes(inner, {
-          x: this.cx,
-          y: this.cy,
-        });
-      } else {
-        SVGNode.setAttributes(inner, {
-          x: this.cx,
-          y: this.cy,
-        });
-      }
+      SVGNode.setAttributes(inner, {
+        x: this.cx,
+        y: this.cy,
+      });
       this.inner = inner;
     } else {
       inner.cx = this.cx;
@@ -141,9 +137,12 @@ export class SVGNode {
 
       this.inner = inner;
     }
+
+    this.el = undefined as any;
+    this.el = this.toElement();
   }
 
-  drawConnections(viewport: SVGElement, attributes: Object) {
+  drawConnections(group: Element, attributes: Object) {
     if (this.left) {
       const line = document.createElementNS(
         SVG_NS_URL,
@@ -159,7 +158,7 @@ export class SVGNode {
         ...attributes,
       });
 
-      viewport.appendChild(line);
+      group.appendChild(line);
     }
 
     if (this.right) {
@@ -177,7 +176,7 @@ export class SVGNode {
         ...attributes,
       });
 
-      viewport.appendChild(line);
+      group.appendChild(line);
     }
   }
 
@@ -225,14 +224,14 @@ export class SVGNode {
     if (node_inner.is_variable()) {
       const variable = node_inner.variable();
 
-      svg_node.setInner(SVGNode.CreateTextElement(variable.ident), false);
+      svg_node.setInner(SVGNode.CreateTextElement(variable.ident));
       return svg_node;
     }
 
     if (node_inner.is_application()) {
       const application = node_inner.application();
       const text = SVGNode.CreateTextElement(application.toString());
-      svg_node.setInner(text, false);
+      svg_node.setInner(text);
 
       const left = SVGNode.FromWasmNode(
         application.left,
@@ -260,7 +259,7 @@ export class SVGNode {
     }
 
     const abstraction = node_inner.abstraction();
-    svg_node.setInner(SVGNode.CreateTextElement(abstraction.toString()), false);
+    svg_node.setInner(SVGNode.CreateTextElement(abstraction.toString()));
 
     const left = SVGNode.FromWasmNode(
       abstraction.bound,
@@ -285,5 +284,56 @@ export class SVGNode {
     }
 
     return svg_node;
+  }
+
+  startAnimation() {
+    let startTime: number | null = null;
+
+    const startX = this.cx;
+    const startY = this.cy;
+
+    const groupEl = this.toElement();
+    let circleEl;
+
+    if (groupEl.tagName == "g") {
+      circleEl = groupEl.querySelector("circle")!;
+    } else {
+      circleEl = groupEl;
+    }
+
+    const textEl = this.el!.querySelector("text");
+
+    const speed = 0.00085;
+    const size = 10;
+    const rotationSin = Math.random() - 1;
+    const rotationCos = Math.random() - 1;
+
+    const step = (timestamp: number = Math.random() * 100) => {
+      if (startTime === null) startTime = timestamp;
+
+      const elapsed = timestamp - startTime;
+
+      const cx = startX + size * Math.sin(elapsed * speed * rotationSin);
+      const cy = startY + size * Math.cos(elapsed * speed * rotationCos);
+
+      this.cx = cx;
+      this.cy = cy;
+
+      SVGNode.setAttributes(circleEl!, {
+        cx: cx,
+        cy: cy,
+      });
+
+      if (textEl)
+        SVGNode.setAttributes(textEl, {
+          x: cx,
+          y: cy,
+        });
+
+      SVGRenderer.RenderConnections();
+      if (this.shouldNodeAnimationPlay) requestAnimationFrame(step);
+    };
+
+    requestAnimationFrame(step);
   }
 }
