@@ -11,6 +11,7 @@ export interface Renderer {
   setup(): void;
   renderNode(node: WasmNode): void;
   renderFrames(node: WasmFrames): void;
+  resize(): void;
 }
 
 export class RenderHandler {
@@ -86,5 +87,9 @@ export class RenderHandler {
     }
 
     this.setRenderer(new renderer(), name);
+  }
+
+  static WindowSizeChanged() {
+    RenderHandler.renderer.resize()
   }
 }

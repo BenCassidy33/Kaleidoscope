@@ -14,4 +14,8 @@ export class ManimRenderer implements Renderer {
   renderFrames(frames: WasmFrames) {
     TODO()
   }
+
+  resize(): void {
+      TODO()
+  }
 }

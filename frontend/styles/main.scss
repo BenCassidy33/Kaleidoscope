@@ -6,7 +6,10 @@ $layer-1-color: hsl(0, 0%, 14%);
 $layer-2-color: hsl(0, 0%, 18%);
 
 $border: 2px solid hsl(0, 0%, 24%);
+$border-layer-2: 2px solid hsl(0, 0%, 28%);
 $transition: 0.1s ease-in-out;
+
+$floating-element-height: 36px;
 
 
 html,
@@ -22,10 +25,10 @@ body,
 }
 
 #math-inputs-list {
-  width: 45%;
+  min-width: 25%;
   height: 100%;
   padding: 0.5rem;
-  border-right: 1px solid white;
+  border-right: $border-layer-2;
   resize: horizontal;
   display: flex;
   flex-direction: column;
@@ -59,7 +62,7 @@ object {
   display: flex;
   margin-bottom: 15px;
   padding-bottom: 5px;
-  border-bottom: 1px solid gray;
+  border-bottom: $border-layer-2;
 }
 
 .math-field-controls {
@@ -129,7 +132,7 @@ main {
   position: absolute;
   top: 15px;
   right: 15px;
-  width: 5%;
+  height: $floating-element-height;
   background-color: $layer-1-color;
   border-radius: $border-radius;
   display: flex;
@@ -170,10 +173,13 @@ main {
   background-color: $layer-1-color;
   border-radius: $border-radius;
   padding: 10px;
-  left: 35%;
   top: 15px;
+  left: 25%;
+  min-height: $floating-element-height;
+  transform: translate(25%);
   display: flex;
   flex-direction: column;
+  justify-content: center;
   cursor: pointer;
   user-select: none;
   border: $border;
@@ -245,7 +251,7 @@ main {
   aspect-ratio: 1;
   padding: 5px;
   background-color: inherit;
-  border: 2px solid white;
+  border: $border;
   display: flex;
   justify-content: center;
   align-items: center;

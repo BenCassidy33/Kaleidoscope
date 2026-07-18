@@ -8,6 +8,10 @@ import { LambdaHandler } from "./handler.js";
 import { RenderHandler } from "./renderers/renderHandler.js";
 import { ManimRenderer } from "./renderers/manim.js";
 
+window.addEventListener("resize", () => {
+  RenderHandler.WindowSizeChanged()
+});
+
 async function initMain() {
   await init();
   LambdaHandler.Init();

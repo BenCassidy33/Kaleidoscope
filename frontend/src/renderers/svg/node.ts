@@ -21,7 +21,7 @@ export class RawSVG {
   }
 }
 
-const CASE_SENSITIVE_ATTRS = new Set(["viewBox", "preserveAspectRatio"]);
+const CASE_SENSITIVE_ATTRS = new Set(["viewBox", "preserveAspectRatio", "patternUnits"]);
 
 export class SVGNode {
   left: SVGNode | undefined;

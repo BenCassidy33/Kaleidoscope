@@ -3,7 +3,6 @@ import { type Renderer } from "../renderHandler";
 import { SVGNode } from "./node";
 
 export const SVG_NS_URL: string = "http://www.w3.org/2000/svg";
-window.addEventListener("resize", () => {});
 
 export class SVGRenderer implements Renderer {
   static nodes: Element[] = [];
@@ -18,16 +17,26 @@ export class SVGRenderer implements Renderer {
   private static m_viewportStartY: number;
 
   setup() {
-    SVGRenderer.Init()
+    SVGRenderer.Init();
   }
 
-  renderNode(node: WasmNode): void {};
+  renderNode(node: WasmNode): void {}
 
   renderFrames(frames: WasmFrames) {
     throw new Error("Todo!");
   }
 
+  resize() {
+    SVGRenderer.ResetViewport();
+    SVGRenderer.RedrawBackground();
+  }
+
   static Init() {
+    if (this.m_hasInit) {
+      console.warn("Warning! Call to Init() on SVGRenderer more than once!");
+      return;
+    }
+
     SVGRenderer.renderContainerEl =
       document.querySelector<HTMLDivElement>("#render-area")!;
 
@@ -49,6 +58,70 @@ export class SVGRenderer implements Renderer {
 
     SVGRenderer.renderContainerEl?.appendChild(SVGRenderer.viewport);
     this.m_hasInit = true;
+
+    SVGRenderer.CreateBackground();
+  }
+
+  static CreateBackground() {
+    let defs = document.createElementNS(SVG_NS_URL, "defs");
+    let pattern = document.createElementNS(SVG_NS_URL, "pattern");
+
+    const patternWidth = 50;
+    SVGNode.setAttributes(pattern, {
+      id: "tile",
+      width: patternWidth,
+      height: patternWidth,
+      patternUnits: "userSpaceOnUse",
+    });
+
+    const circle = document.createElementNS(SVG_NS_URL, "circle");
+    SVGNode.setAttributes(circle, {
+      cx: patternWidth / 2,
+      cy: patternWidth / 2,
+      r: 1.5,
+      fill: "gray",
+    });
+
+    pattern.appendChild(circle);
+    defs.appendChild(pattern);
+    SVGRenderer.viewport.appendChild(defs);
+
+    const backgroundSize = 200;
+
+    let backgroundRect = document.createElementNS(SVG_NS_URL, "rect");
+    SVGNode.setAttributes(backgroundRect, {
+      id: "background-rect",
+      x: `-${backgroundSize / 4}%`,
+      y: `-${backgroundSize / 4}%`,
+      width: `${backgroundSize}%`,
+      height: `${backgroundSize}%`,
+      fill: "url(#tile)",
+    });
+
+    SVGRenderer.viewport.appendChild(backgroundRect);
+  }
+
+  static RedrawBackground() {
+    const pattern = document.querySelector("#tile")!;
+    const patternRect = document.querySelector("#background-rect")!;
+
+    const [vx, vy, _] = SVGRenderer.viewport
+      .getAttribute("viewBox")!
+      .split(" ");
+    const [x, y] = [parseFloat(vx!), parseFloat(vy!)];
+
+    SVGNode.setAttributes(pattern, {
+      width: 0,
+    });
+
+    SVGNode.setAttributes(pattern, {
+      width: 50,
+    });
+
+    SVGNode.setAttributes(patternRect, {
+      x: x,
+      y: y,
+    });
   }
 
   private static AssertInit() {
@@ -70,12 +143,19 @@ export class SVGRenderer implements Renderer {
   }
 
   static ResetViewport() {
+    const newWidth = SVGRenderer.renderContainerEl.clientWidth;
+    const newHeight = SVGRenderer.renderContainerEl.clientHeight;
+
     SVGNode.setAttributes(SVGRenderer.viewport, {
-      viewBox: `0 0 ${SVGRenderer.renderContainerEl.clientWidth} ${SVGRenderer.renderContainerEl.clientHeight}`,
+      width: newWidth,
+      height: newHeight,
+      viewBox: `0 0 ${newWidth} ${newHeight}`,
     });
   }
 
   private static HandleMouseMove(ev: MouseEvent) {
+    SVGRenderer.RedrawBackground();
+
     const [csx, csy] = SVGRenderer.MapClientCoordinates(
       this.m_clientStartX,
       this.m_clientStartY,
