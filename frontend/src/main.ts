@@ -3,15 +3,18 @@ import "mathlive";
 
 import init from "../build/pkg/kaleidoscope.js";
 import { MathFieldElement } from "./elements";
-import { SVGRenderer } from "./renderers/svg.js";
+import { SVGRenderer } from "./renderers/svg/svg.js";
 import { LambdaHandler } from "./handler.js";
 import { RenderHandler } from "./renderers/renderHandler.js";
+import { ManimRenderer } from "./renderers/manim.js";
 
 async function initMain() {
   await init();
-  SVGRenderer.Init();
   LambdaHandler.Init();
   RenderHandler.Init();
+
+  RenderHandler.Register(SVGRenderer, "Tree")
+  RenderHandler.Register(ManimRenderer, "Manim")
 }
 
 async function main() {

@@ -1,11 +1,13 @@
 import { MathfieldElement } from "mathlive";
 import { LambdaHandler } from "./handler";
+import { RenderHandler } from "./renderers/renderHandler";
 
-export const reduceButtonEl = document.querySelector<HTMLDivElement>("#reduce-button")!;
+export const reduceButtonEl =
+  document.querySelector<HTMLDivElement>("#reduce-button")!;
 
 reduceButtonEl.addEventListener("click", () => {
-  LambdaHandler.Interpret()
-})
+  LambdaHandler.Interpret();
+});
 
 export const mainEl = document.querySelector<HTMLTemplateElement>("main")!;
 export const addNewMathInputEl = document.querySelector<HTMLTemplateElement>(
@@ -16,6 +18,72 @@ export const mathFieldsContainer =
 
 addNewMathInputEl.addEventListener("click", () => {
   new MathFieldElement();
+});
+
+let dropdownMenuShowing = false;
+
+export const renderSelectEl =
+  document.querySelector<HTMLDivElement>("#renderer-select")!;
+export const currentRenderer =
+  document.querySelector<HTMLDivElement>("#current-renderer")!;
+
+export const rendererSelectDropdownOptions =
+  document.querySelector<HTMLDivElement>("#render-select-dropdown-options")!;
+
+export const renderSelectDisplay = document.querySelector<HTMLDivElement>(
+  ".render-select-display",
+)!;
+
+export let rendererSelectionOptions = document.querySelectorAll<HTMLDivElement>(
+  ".renderer-selection-option",
+)!;
+
+export function setSelectedOption(name: string) {
+  rendererSelectionOptions = document.querySelectorAll<HTMLDivElement>(
+    ".renderer-selection-option",
+  )!;
+  console.log(Array.from(rendererSelectionOptions));
+  for (const opt of rendererSelectionOptions) {
+    if (opt.getAttribute("renderer-name") == name) {
+      opt.setAttribute("selected", "true");
+      continue;
+    }
+    opt.setAttribute("selected", "false");
+  }
+}
+
+export function setOptionOnClicks() {
+  rendererSelectionOptions = document.querySelectorAll<HTMLDivElement>(
+    ".renderer-selection-option",
+  )!;
+  for (const opt of rendererSelectionOptions) {
+    opt.addEventListener("click", () => {
+      let name;
+      if (!(name = opt.getAttribute("renderer-name"))) {
+        throw new Error(
+          "Attempt to set a renderer without settings renderer-name in element!",
+        );
+      }
+
+      RenderHandler.setRendererByName(name);
+    });
+  }
+}
+
+function setDropdownShowing(state: boolean = !dropdownMenuShowing) {
+  if (dropdownMenuShowing) {
+    rendererSelectDropdownOptions.classList.add("display-none");
+    renderSelectDisplay.classList.remove("dropdown-open");
+  } else {
+    rendererSelectDropdownOptions.classList.remove("display-none");
+    renderSelectDisplay.classList.add("dropdown-open");
+  }
+
+  dropdownMenuShowing = state;
+}
+
+renderSelectEl.addEventListener("click", () => {
+  setDropdownShowing();
 });
 
 let lastId = -1;
@@ -56,14 +124,14 @@ export class MathFieldElement {
     this.mf.menuItems = [];
     this.mf.addEventListener("click", () => this.mf.focus());
     this.mf.addEventListener("keydown", (ev: KeyboardEvent) => {
-      if (ev.code === 'Enter') {
+      if (ev.code === "Enter") {
         LambdaHandler.ParseExpression(this.id, this.mf.value);
       }
-    })
+    });
 
     this.mf.macros = {
       ...this.mf.macros,
-      l: "λ"
-    }
+      l: "λ",
+    };
   }
 }

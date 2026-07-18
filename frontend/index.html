@@ -13,7 +13,11 @@
         <div class="math-input-container">
           <div class="math-field-controls">
             <div class="math-field-close math-field-control">
-              <object class="math-field-control-close" data="/svgs/cross.svg" type="image/svg+xml"></object>
+              <object
+                class="math-field-control-close"
+                data="/svgs/cross.svg"
+                type="image/svg+xml"
+              ></object>
             </div>
           </div>
         </div>
@@ -25,13 +29,25 @@
 
       <div id="controls">
         <div id="reduce-button" class="control-button">
-          <object class="reduce-button-svg" data="/svgs/play.svg" type="image/svg+xml"></object>
+          <object
+            class="reduce-button-svg"
+            data="/svgs/play.svg"
+            type="image/svg+xml"
+          ></object>
         </div>
       </div>
 
       <div id="renderer-select">
-        <div id="svg-tree-renderer-select">SVG Tree</div>
-        <div id="manim-renderer-select">Manim</div>
+        <div class="render-select-display" >
+          <div id="current-renderer"></div>
+          <object
+            class="dropdown-caret"
+            data="/svgs/caret.svg"
+            type="image/svg+xml"
+          ></object>
+        </div>
+        <div id="render-select-dropdown-options" class="display-none">
+        </div>
       </div>
 
       <div id="render-area"></div>

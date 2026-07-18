@@ -1,8 +1,13 @@
 @use 'variables' as *;
 
 $background-color: hsl(0, 0%, 9.41%);
+$border-radius: 6px;
 $layer-1-color: hsl(0, 0%, 14%);
-$layer-2-color: hsl(0, 0%, 100%);
+$layer-2-color: hsl(0, 0%, 18%);
+
+$border: 2px solid hsl(0, 0%, 24%);
+$transition: 0.1s ease-in-out;
+
 
 html,
 body,
@@ -126,12 +131,14 @@ main {
   right: 15px;
   width: 5%;
   background-color: $layer-1-color;
-  border-radius: 10px;
+  border-radius: $border-radius;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: space-evenly;
   padding: 10px;
+  border: $border;
+  aspect-ratio: 1;
 }
 
 .control-button {
@@ -148,5 +155,109 @@ main {
 
 .reduce-button-svg {
   background-color: $layer-1-color;
-  // pointer-events: none;
+}
+
+.dropdown-open {
+  transform: scale(1.1);
+}
+
+.dropdown-open object {
+  transform: rotate(180deg);
+}
+
+#renderer-select {
+  position: absolute;
+  background-color: $layer-1-color;
+  border-radius: $border-radius;
+  padding: 10px;
+  left: 35%;
+  top: 15px;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  user-select: none;
+  border: $border;
+}
+
+#current-renderer {
+  padding: 5px;
+  min-width: 100px;
+  background-color: inherit;
+}
+
+#render-select-dropdown-options {
+  background-color: $layer-1-color;
+}
+
+.renderer-selection-option {
+  box-sizing:border-box;
+  background-color: $layer-1-color;
+  margin-top: 5px;
+  margin-bottom: 5px;
+
+  padding: 10px 15px 10px 15px;
+
+  margin-left: 15px;
+  border-radius: $border-radius;
+  transition: 0.1s ease-in-out;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.renderer-selection-option:hover {
+  background-color: $layer-2-color;
+  transform: scale(1.1);
+}
+
+.display-none {
+  display: none;
+}
+
+.dropdown-caret {
+  width: 36px;
+  background-color: inherit;
+  transform: rotate(90deg);
+  transition: $transition;
+}
+
+.render-select-display {
+  background-color: inherit;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: $border-radius;
+  padding: 2px 5px 2px 5px;
+  transition: 0.1s ease-in-out;
+}
+
+#renderer-select:hover .render-select-display {
+  transform: scale(1.1);
+}
+
+.renderer-name {
+  background-color: inherit;
+}
+
+.selected-outer-circle {
+  border-radius: 999999px;
+  aspect-ratio: 1;
+  padding: 5px;
+  background-color: inherit;
+  border: 2px solid white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.selected-inner-circle {
+  background-color: inherit;
+  width: 6.5px;
+  aspect-ratio: 1;
+  border-radius: 9999999px;
+}
+
+.renderer-selection-option[selected="true"] .selected-inner-circle {
+  background-color: white;
 }

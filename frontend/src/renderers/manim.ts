@@ -2,7 +2,7 @@ import type { WasmFrames, WasmNode } from "../../build/pkg/kaleidoscope";
 import { TODO } from "../utils";
 import type { Renderer } from "./renderHandler";
 
-export class ManimHandler implements Renderer {
+export class ManimRenderer implements Renderer {
   setup() {
     TODO()
   }
