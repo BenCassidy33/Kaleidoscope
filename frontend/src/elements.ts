@@ -10,9 +10,9 @@ reduceButtonEl.addEventListener("click", () => {
 });
 
 export const resetViewportButton = document.querySelector<HTMLDivElement>("#reset-viewport-button")
-// resetViewportButton?.addEventListener("click", () => {
-//   RenderHandler.Reset()
-// })
+resetViewportButton?.addEventListener("click", () => {
+  RenderHandler.Reset()
+})
 
 export const mainEl = document.querySelector<HTMLTemplateElement>("main")!;
 export const addNewMathInputEl = document.querySelector<HTMLTemplateElement>(

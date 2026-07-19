@@ -117,21 +117,30 @@ impl WasmFrames {
 
 #[wasm_bindgen]
 pub fn wasm_interpret_raw(expressions: String) -> Result<WasmFrames, InterpretingError> {
-
     let expressions: Vec<Lambda> = Lambda::parse(expressions)
         .unwrap_expressions()
-        .map_err(Into::<InterpretingError>::into)?.collect();
+        .map_err(Into::<InterpretingError>::into)?
+        .collect();
 
-    Ok(WasmFrames(interpret(expressions, &mut empty())?))
+    Ok(WasmFrames(interpret(expressions, &mut empty(), None)?))
 }
 
 // TODO: Standardize output format of results
-pub fn interpret<L, O>(lambdas: L, stdout: &mut O) -> Result<Vec<Vec<Node>>, InterpretingError>
+pub fn interpret<L, O>(
+    lambdas: L,
+    stdout: &mut O,
+    opts: Option<&mut Opts>,
+) -> Result<Vec<Vec<Node>>, InterpretingError>
 where
     L: IntoIterator<Item = Lambda>,
     O: std::io::Write,
 {
-    let opts = Opts::create_default_options();
+    let opts = if let Some(opts) = opts {
+        opts
+    } else {
+        &mut Opts::create_default_options()
+    };
+
     let lambdas: Vec<Lambda> = lambdas.into_iter().collect();
 
     let mut expression_frames = Vec::new();

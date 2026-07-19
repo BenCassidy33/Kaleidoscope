@@ -1,32 +1,30 @@
 #![allow(dead_code, unused_variables)]
 
-use std::io::stdout;
+use std::ops::Sub;
 
 use clap::Parser;
 use kaleidoscope::{
-    Lambda, UnwrapExpressions, UnzipExpressions, args::{Args, Subcommands}, repl::run_repl,
+    args::{Args, Subcommands},
+    repl::run_repl,
 };
+use miette::ErrReport;
 
-fn do_stuff() -> miette::Result<()> {
+fn main() -> miette::Result<()> {
     let args = Args::parse();
 
-    if let Some(subcmds) = args.subcommands
-        && matches!(subcmds, Subcommands::Interactive { .. })
-    {
-        run_repl(&args).map_err(|e| miette::miette!("Repl exited unexpectedly. Reason: {}", e))?;
+    if args.file.is_some() {
         todo!();
     }
 
-    Ok(())
-}
+    if args.subcommands.is_none() {
+        run_repl(true).map_err(ErrReport::from_err)?
+    }
 
-fn main() -> miette::Result<()> {
-    // do_stuff()?;
-    let input = r#"xyz"#;
+    match &args.subcommands.clone().unwrap() {
+        Subcommands::Interactive { show_hello } => {
+            Ok(run_repl(*show_hello).map_err(ErrReport::from_err)?)
+        }
 
-    // let input = r#"yz(Lm.(Lx.xm))"#;
-    let expressions = Lambda::parse(input);
-    kaleidoscope::interpreter::interpret(expressions.unwrap_expressions()?, &mut stdout())?;
-
-    Ok(())
+        _ => todo!(),
+    }
 }
