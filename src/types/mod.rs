@@ -108,7 +108,7 @@ pub struct ParsingError {
     pub(crate) src: String,
     pub(crate) msg: Option<String>,
 
-    #[label("{msg:?}")]
+    #[label("{}", msg.as_deref().unwrap_or("here"))]
     #[serde(skip)]
     pub(crate) error_span: SourceSpan,
 
@@ -156,7 +156,7 @@ pub struct ReductionError {
     pub(crate) src: String,
     pub(crate) msg: Option<String>,
 
-    #[label("{msg:?}")]
+    #[label("{}", msg.as_deref().unwrap_or("here"))]
     #[serde(skip)]
     pub(crate) error_span: SourceSpan,
 

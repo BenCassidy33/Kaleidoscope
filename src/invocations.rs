@@ -15,7 +15,7 @@ pub struct InvocationError {
     pub(crate) src: String,
     pub(crate) msg: Option<String>,
 
-    #[label("{msg:?}")]
+    #[label("{}", msg.as_deref().unwrap_or("here"))]
     pub(crate) error_span: SourceSpan,
 
     pub(crate) created_at: Option<CreatedAt>,

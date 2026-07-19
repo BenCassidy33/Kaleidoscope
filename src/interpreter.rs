@@ -23,7 +23,7 @@ pub struct InterpretingError {
     msg: Option<String>,
 
     #[serde(skip)]
-    #[label("{msg:?}")]
+    #[label("{}", msg.as_deref().unwrap_or("here"))]
     error_span: SourceSpan,
 
     created_at: Option<CreatedAt>,

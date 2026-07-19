@@ -1,11 +1,19 @@
 use console::Term;
 use derive_more::Display;
 use enum_iterator::{Sequence, all};
+use miette::IntoDiagnostic;
 use serde_json::Value;
-use std::io::{self, Write};
+use std::{
+    collections::HashMap,
+    io::{self, Write},
+};
 use thiserror::Error;
 
-use crate::opts::{CreateDefaultOpts, Opts};
+use crate::{
+    Lambda, LambdaKind, UnwrapExpressions, UnzipExpressions,
+    interpreter::{self, InterpretingError},
+    opts::{CreateDefaultOpts, Opts},
+};
 
 const HELLO_MESSAGE: &str =
     "Welcome to the Kaleidoscope repl. Use /help for help or /quit to quit.";
@@ -15,6 +23,9 @@ pub enum ReplError {
     #[error("IO Error!")]
     IoError(#[from] io::Error),
 
+    #[error("Interpreting Error")]
+    InterpretingError(#[from] InterpretingError),
+
     #[error("Unknown error...")]
     Unknown,
 }
@@ -23,6 +34,8 @@ pub fn run_repl(show_hello: bool) -> Result<(), ReplError> {
     let mut term = Term::stdout();
     let mut opts = Opts::create_default_options();
     let mut history: Vec<String> = Vec::new();
+
+    let mut expression_hist: Vec<Lambda> = Vec::new();
 
     if show_hello {
         term.write_line(HELLO_MESSAGE)?;
@@ -41,6 +54,22 @@ pub fn run_repl(show_hello: bool) -> Result<(), ReplError> {
         if line.starts_with("/") {
             run_cmd(line, &mut term, &mut opts)?;
             continue;
+        }
+
+        let lambda = match Lambda::parse(line).unwrap_expressions() {
+            Ok(l) => l,
+            Err(e) => {
+                write!(term, "{}", e)?;
+                continue;
+            }
+        };
+
+        expression_hist.append(&mut lambda.collect::<Vec<_>>());
+        let res = interpreter::interpret(expression_hist.clone(), &mut term, Some(&mut opts));
+
+        if let Err(e) = res {
+            let report: miette::Report = e.into();
+            writeln!(term, "{:?}", report)?;
         }
     }
 }
