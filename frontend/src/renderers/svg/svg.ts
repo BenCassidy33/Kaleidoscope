@@ -1,6 +1,5 @@
 import type { WasmNode } from "../../../build/pkg/kaleidoscope";
 import { Utils, ViewBox } from "../../utils";
-import { type Renderer } from "../renderHandler";
 import { SVGNode } from "./node";
 
 export const SVG_NS_URL: string = "http://www.w3.org/2000/svg";
@@ -12,7 +11,7 @@ export enum RendererPlaybackState {
   Finished,
 }
 
-export class SVGRenderer implements Renderer {
+export class SVGRenderer {
   static nodes: SVGNode[] = [];
   static framesRoots: SVGNode[] = [];
   static renderContainerEl: HTMLDivElement;

@@ -5,27 +5,19 @@ import {
   setOptionOnClicks,
   setSelectedOption,
 } from "../elements";
-import { RendererPlaybackState, SVGRenderer } from "./svg/svg";
+import { ManimRenderer } from "./manim/manimRenderer";
+import { SVGRenderer } from "./svg/svg";
 
-export interface Renderer {
-  setup(): void;
-  renderRoot(node: WasmNode): void;
-  renderFrames(node: WasmNode[], shouldStart: boolean): void;
-  stepFrame(): void;
-  resize(): void;
-  reset(): void;
-  state(): RendererPlaybackState;
-  togglePlayback(): void;
-}
+type Renderer = SVGRenderer | ManimRenderer;
 
 export class RenderHandler {
   static renderer: Renderer;
   static isInit: boolean = false;
   static registeredRenderers: Map<string, new () => Renderer> = new Map();
 
-  static Init(renderer: Renderer = new SVGRenderer()) {
+  static Init(renderer: Renderer = new ManimRenderer()) {
     if (renderer instanceof SVGRenderer) {
-      RenderHandler.Register(SVGRenderer, "Tree")
+      RenderHandler.Register(SVGRenderer, "Tree");
       RenderHandler.setRenderer(renderer, "Tree");
     } else {
       RenderHandler.setRenderer(renderer);
@@ -73,11 +65,15 @@ export class RenderHandler {
   }
 
   static renderNode(node: WasmNode): void {
-    RenderHandler.renderer.RenderSVGRoot(node);
+    RenderHandler.renderer.renderRoot(node);
   }
 
   static renderFrames(frames: WasmNode[]): void {
-    RenderHandler.renderer.renderFrames(frames);
+    if (RenderHandler.renderer instanceof SVGRenderer) {
+      RenderHandler.renderer.renderFrames(frames);
+    } else if (RenderHandler.renderer instanceof ManimRenderer) {
+      this.renderer.renderFrames(frames);
+    }
   }
 
   static setRendererByName(name: string) {
@@ -96,6 +92,6 @@ export class RenderHandler {
   }
 
   static WindowSizeChanged() {
-    RenderHandler.renderer.resize()
+    RenderHandler.renderer.resize();
   }
 }

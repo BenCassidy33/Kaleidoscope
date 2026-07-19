@@ -6,7 +6,7 @@ import { MathFieldElement } from "./elements";
 import { SVGRenderer } from "./renderers/svg/svg.js";
 import { LambdaHandler } from "./handler.js";
 import { RenderHandler } from "./renderers/renderHandler.js";
-import { ManimRenderer } from "./renderers/manim.js";
+import { ManimRenderer } from "./renderers/manim/manimRenderer";
 
 window.addEventListener("resize", () => {
   RenderHandler.WindowSizeChanged()

@@ -15,6 +15,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "manim-web": "^0.3.24",
     "mathlive": "^0.110.0",
     "typescript": "^5",
     "vite": "^8.1.5"

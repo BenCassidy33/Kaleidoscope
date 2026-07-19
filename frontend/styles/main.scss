@@ -130,6 +130,7 @@ main {
 }
 
 #controls {
+  z-index: 9999;
   position: absolute;
   top: 15px;
   right: 15px;
@@ -175,6 +176,7 @@ main {
 }
 
 #renderer-select {
+  z-index: 99999;
   position: absolute;
   background-color: $layer-1-color;
   border-radius: $border-radius;
