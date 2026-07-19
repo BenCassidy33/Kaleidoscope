@@ -110,7 +110,7 @@ export class MathFieldElement {
     this.mf = new MathfieldElement();
 
     //TODO: Remove this
-    this.mf.value = "abcd";
+    this.mf.value = "xyLm.m";
 
     this.el.appendChild(this.mf);
 

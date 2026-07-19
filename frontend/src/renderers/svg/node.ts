@@ -45,6 +45,7 @@ export class SVGNode {
   cy: number;
 
   shouldNodeAnimationPlay: boolean = true;
+  parent: SVGNode | undefined;
 
   constructor(
     attributes: Partial<SVGCircleAttrs> = {
@@ -58,25 +59,14 @@ export class SVGNode {
     inner?: SVGNode | SVGElement,
     left?: SVGNode,
     right?: SVGNode,
-    normalize: boolean = true,
   ) {
     this.attributes = attributes;
     this.left = left;
     this.right = right;
     if (inner) this.setInner(inner);
 
-    // const [cx, cy] = Utils.NormalizeCoordsToViewport(attributes.cx!, attributes.cy!, SVGRenderer.viewport);
-    // console.log(attributes.cx, attributes.cy, cx, cy);
-    // this.cx = cx;
-    // this.cy = cy;
-
-    // if (normalize) {
     this.cx = attributes.cx!;
     this.cy = attributes.cy!;
-    // } else {
-    //   this.cx = attributes.cx!;
-    //   this.cy = attributes.cy!;
-    // }
   }
 
   static setAttributes(e: Element, attributes: Object) {
@@ -224,11 +214,11 @@ export class SVGNode {
       undefined,
       undefined,
       undefined,
-      false,
     );
 
-    const node_inner = node.inner();
+    svg_node.parent = parent;
 
+    const node_inner = node.inner();
     if (node_inner.is_variable()) {
       const variable = node_inner.variable();
 

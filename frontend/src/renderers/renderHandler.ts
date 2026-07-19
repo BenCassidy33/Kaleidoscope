@@ -5,14 +5,17 @@ import {
   setOptionOnClicks,
   setSelectedOption,
 } from "../elements";
-import { SVGRenderer } from "./svg/svg";
+import { RendererPlaybackState, SVGRenderer } from "./svg/svg";
 
 export interface Renderer {
   setup(): void;
-  renderNode(node: WasmNode): void;
-  renderFrames(node: WasmNode[]): void;
+  renderRoot(node: WasmNode): void;
+  renderFrames(node: WasmNode[], shouldStart: boolean): void;
+  stepFrame(): void;
   resize(): void;
   reset(): void;
+  state(): RendererPlaybackState;
+  togglePlayback(): void;
 }
 
 export class RenderHandler {
@@ -70,7 +73,7 @@ export class RenderHandler {
   }
 
   static renderNode(node: WasmNode): void {
-    RenderHandler.renderer.renderNode(node);
+    RenderHandler.renderer.RenderSVGRoot(node);
   }
 
   static renderFrames(frames: WasmNode[]): void {

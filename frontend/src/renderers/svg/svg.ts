@@ -5,10 +5,21 @@ import { SVGNode } from "./node";
 
 export const SVG_NS_URL: string = "http://www.w3.org/2000/svg";
 
+export enum RendererPlaybackState {
+  NotStarted,
+  Playing,
+  Paused,
+  Finished,
+}
+
 export class SVGRenderer implements Renderer {
   static nodes: SVGNode[] = [];
+  static framesRoots: SVGNode[] = [];
   static renderContainerEl: HTMLDivElement;
   static viewport: SVGElement;
+  static currentFrame: number = 0;
+  static playbackState: RendererPlaybackState =
+    RendererPlaybackState.NotStarted;
 
   private static m_hasInit: boolean = false;
 
@@ -24,60 +35,6 @@ export class SVGRenderer implements Renderer {
 
   private static startupAnimation: boolean = true;
   private static patternWidth: number = 50;
-
-  setup() {
-    SVGRenderer.Init();
-  }
-
-  renderNode(node: WasmNode): void {
-    SVGRenderer.nodes = [];
-
-    const root = SVGNode.FromWasmNode(
-      node,
-      undefined,
-      undefined,
-      undefined,
-      true,
-    );
-    if (!root) {
-      return;
-    }
-
-    SVGRenderer.nodes = SVGRenderer.FlattenNodes(root);
-    SVGRenderer.Render();
-
-    SVGRenderer.MoveNodeTo(root, 100, -100, 0.05, true);
-  }
-
-  reset() {
-    SVGRenderer.ResetViewport();
-    SVGRenderer.RedrawBackground();
-  }
-
-  static FlattenNodes(node: SVGNode | undefined): SVGNode[] {
-    if (!node) {
-      return [];
-    }
-
-    return [
-      node,
-      ...SVGRenderer.FlattenNodes(node.left),
-      ...SVGRenderer.FlattenNodes(node.right),
-    ];
-  }
-
-  renderFrames(frames: WasmNode[]) {
-    for (const wasm_node of frames) {
-      SVGRenderer.nodes = [];
-      SVGRenderer.viewport.querySelectorAll("g").forEach((g) => g.remove());
-      this.renderNode(wasm_node);
-    }
-  }
-
-  resize() {
-    SVGRenderer.ResetViewport();
-    SVGRenderer.RedrawBackground();
-  }
 
   static Init() {
     if (this.m_hasInit) {
@@ -113,6 +70,140 @@ export class SVGRenderer implements Renderer {
     SVGRenderer.CreateBackground();
     // This does not work for now...
     // SVGRenderer.CursorAnimations.HighlightNearCursor();
+  }
+
+  private static AssertInit() {
+    if (!SVGRenderer.m_hasInit)
+      throw new Error(
+        "Attempt to call to SVGRenderer before init() has been called!",
+      );
+  }
+
+  setup() {
+    SVGRenderer.Init();
+  }
+
+  state(): RendererPlaybackState {
+    return SVGRenderer.playbackState;
+  }
+
+  RenderSVGRoot(root: SVGNode): void {
+    SVGRenderer.nodes = [];
+    SVGRenderer.nodes = SVGRenderer.FlattenNodes(root);
+    SVGRenderer.Render();
+  }
+
+  renderRoot(root: WasmNode) {
+    SVGRenderer.framesRoots = [];
+    SVGRenderer.nodes = [];
+
+    SVGRenderer.viewport.querySelectorAll("g").forEach((g) => g.remove());
+    const svgRoot = SVGNode.FromWasmNode(
+      root,
+      undefined,
+      undefined,
+      undefined,
+      true,
+    );
+    if (!svgRoot) {
+      console.error("Error when parsing wasm node!");
+      return;
+    }
+
+    SVGRenderer.nodes = SVGRenderer.FlattenNodes(svgRoot);
+    SVGRenderer.Render();
+  }
+
+  reset() {
+    SVGRenderer.ResetViewport();
+    SVGRenderer.RedrawBackground();
+  }
+
+  static FlattenNodes(node: SVGNode | undefined): SVGNode[] {
+    if (!node) {
+      return [];
+    }
+
+    return [
+      node,
+      ...SVGRenderer.FlattenNodes(node.left),
+      ...SVGRenderer.FlattenNodes(node.right),
+    ];
+  }
+
+  togglePlayback() {
+    if (SVGRenderer.playbackState == RendererPlaybackState.Playing) {
+      SVGRenderer.playbackState = RendererPlaybackState.Paused;
+      return;
+    }
+
+    if (
+      SVGRenderer.playbackState == RendererPlaybackState.NotStarted ||
+      SVGRenderer.playbackState == RendererPlaybackState.Finished
+    ) {
+      SVGRenderer.currentFrame = 0;
+      SVGRenderer.playbackState = RendererPlaybackState.Playing;
+      return;
+    }
+  }
+
+  stepFrame(): void {
+    SVGRenderer.viewport.querySelectorAll("g").forEach(g => g.remove());
+
+    if (SVGRenderer.currentFrame == SVGRenderer.framesRoots.length - 1) return;
+
+    SVGRenderer.currentFrame++;
+    if (SVGRenderer.currentFrame == SVGRenderer.framesRoots.length - 1) {
+      SVGRenderer.nodes = SVGRenderer.FlattenNodes(
+        SVGRenderer.framesRoots[SVGRenderer.currentFrame],
+      );
+
+      SVGRenderer.Render();
+      return;
+    }
+  }
+
+  renderFrames(frames: WasmNode[]) {
+    SVGRenderer.framesRoots = [];
+    SVGRenderer.viewport.querySelectorAll("g").forEach((g) => g.remove());
+
+    for (const wasm_node of frames) {
+      const frameRoot = SVGNode.FromWasmNode(
+        wasm_node,
+        undefined,
+        undefined,
+        undefined,
+        true,
+      );
+      if (!frameRoot) {
+        console.error("Error when parsing wasm node!");
+        return;
+      }
+
+      SVGRenderer.framesRoots.push(frameRoot);
+    }
+
+    SVGRenderer.currentFrame = 0;
+    SVGRenderer.nodes = SVGRenderer.FlattenNodes(SVGRenderer.framesRoots[0]);
+    SVGRenderer.Render();
+
+    const step = () => {
+      if (SVGRenderer.currentFrame == SVGRenderer.framesRoots.length - 1) return;
+      this.stepFrame();
+
+      setTimeout(() => {
+        requestAnimationFrame(step)
+      }, 1000)
+    }
+
+    setTimeout(() => {
+      requestAnimationFrame(step)
+    }, 1000)
+  }
+
+  resize() {
+    SVGRenderer.ResetViewport();
+    SVGRenderer.RedrawBackground();
   }
 
   static CreateBackground() {
@@ -167,8 +258,8 @@ export class SVGRenderer implements Renderer {
     if (SVGRenderer.viewport.children.length === 0) {
       SVGRenderer.viewport.appendChild(backgroundRect);
     } else {
-      let first=  SVGRenderer.viewport.firstElementChild;
-      SVGRenderer.viewport.insertBefore(backgroundRect, first)
+      let first = SVGRenderer.viewport.firstElementChild;
+      SVGRenderer.viewport.insertBefore(backgroundRect, first);
     }
   }
 
@@ -197,13 +288,6 @@ export class SVGRenderer implements Renderer {
       x: x,
       y: y,
     });
-  }
-
-  private static AssertInit() {
-    if (!SVGRenderer.m_hasInit)
-      throw new Error(
-        "Attempt to call to SVGRenderer before init() has been called!",
-      );
   }
 
   private static MapClientCoordinates(
