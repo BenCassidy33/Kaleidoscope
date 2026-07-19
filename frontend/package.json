@@ -9,7 +9,7 @@
     "sass-embedded": "^1.100.0"
   },
   "scripts": {
-    "build:wasm": "mkdir -p ./node_modules/.vite/deps/fonts && cp -r ./node_modules/katex/dist/fonts node_modules/.vite/deps/fonts && wasm-pack build --target web --out-dir ./frontend/build/pkg",
+    "build:wasm": "mkdir -p ./node_modules/.vite/deps && cp -r ./node_modules/katex/dist/fonts node_modules/.vite/deps/fonts && wasm-pack build --target web --out-dir ./frontend/build/pkg",
     "dev": "bun run build:wasm && vite",
     "build": "bun run build:wasm && vite build",
     "preview": "vite preview"

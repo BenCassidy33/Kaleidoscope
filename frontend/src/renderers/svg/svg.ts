@@ -1,5 +1,5 @@
 import type { WasmNode } from "../../../build/pkg/kaleidoscope";
-import { Point, TODO, Utils, ViewBox } from "../../utils";
+import { ViewBox } from "../../utils";
 import { type Renderer } from "../renderHandler";
 import { SVGNode } from "./node";
 
@@ -21,6 +21,9 @@ export class SVGRenderer implements Renderer {
 
   private static shouldNodeAnimationsPlay = true;
   private static nodeAnimationId: number = -1;
+
+  private static startupAnimation: boolean = true;
+  private static patternWidth: number = 50;
 
   setup() {
     SVGRenderer.Init();
@@ -96,30 +99,48 @@ export class SVGRenderer implements Renderer {
     SVGRenderer.renderContainerEl?.appendChild(SVGRenderer.viewport);
     this.m_hasInit = true;
 
+    this.BackgroundAnimations.patternWidth = this.patternWidth;
+    this.CursorAnimations.patternWidth = this.patternWidth;
+
     SVGRenderer.CreateBackground();
+    // This does not work for now...
+    // SVGRenderer.CursorAnimations.HighlightNearCursor();
   }
 
   static CreateBackground() {
-    let defs = document.createElementNS(SVG_NS_URL, "defs");
-    let pattern = document.createElementNS(SVG_NS_URL, "pattern");
+    if (SVGRenderer.startupAnimation) {
+      console.log("ripple");
+      SVGRenderer.BackgroundAnimations.RippleAnimation();
+    } else {
+      SVGRenderer.CreateBackgroundPattern();
+    }
+  }
 
-    const patternWidth = 50;
+  static CreateBackgroundPattern() {
+    let defs = document.createElementNS(SVG_NS_URL, "defs") as SVGDefsElement;
+    let pattern = document.createElementNS(
+      SVG_NS_URL,
+      "pattern",
+    ) as SVGPatternElement;
+    this.BackgroundAnimations.pattern = pattern;
+
     SVGNode.setAttributes(pattern, {
       id: "tile",
-      width: patternWidth,
-      height: patternWidth,
+      width: this.patternWidth,
+      height: this.patternWidth,
       patternUnits: "userSpaceOnUse",
     });
 
     const circle = document.createElementNS(SVG_NS_URL, "circle");
     SVGNode.setAttributes(circle, {
-      cx: patternWidth / 2,
-      cy: patternWidth / 2,
+      cx: this.patternWidth / 2,
+      cy: this.patternWidth / 2,
       r: 1.5,
       fill: "gray",
     });
 
     pattern.appendChild(circle);
+
     defs.appendChild(pattern);
     SVGRenderer.viewport.appendChild(defs);
 
@@ -139,6 +160,10 @@ export class SVGRenderer implements Renderer {
   }
 
   static RedrawBackground() {
+    SVGRenderer.RedrawBackgroundPattern();
+  }
+
+  static RedrawBackgroundPattern() {
     const pattern = document.querySelector("#tile")!;
     const patternRect = document.querySelector("#background-rect")!;
 
@@ -240,8 +265,6 @@ export class SVGRenderer implements Renderer {
     const circleNode = node.toElement().querySelector("circle")!;
     const text = node.toElement().querySelector("text")!;
 
-    const startX = node.cx;
-    const startY = node.cy;
     let targetX = node.cx;
     let targetY = node.cy;
 
@@ -279,10 +302,8 @@ export class SVGRenderer implements Renderer {
       isRunning = false;
       window.removeEventListener("mousemove", onMove);
       SVGRenderer.HandleNodeReleased(node, el);
-    })
+    });
   }
-
-  static HandleHeldNodeMovedInner(ev: MouseEvent, node: SVGNode) {}
 
   static HandleNodeReleased(node: SVGNode, _: Element) {
     node.shouldNodeAnimationPlay = true;
@@ -367,4 +388,173 @@ export class SVGRenderer implements Renderer {
       node.startAnimation();
     }
   }
+
+  static CursorAnimations = class {
+    static dots: SVGGElement;
+    static patternWidth: number;
+    static pointsPerRadius: number[] = [1, 5, 13, 29, 49, 81, 113];
+
+    static HighlightNearCursor() {
+      const rect = SVGRenderer.viewport.getBoundingClientRect();
+      const viewbox = ViewBox.Get(SVGRenderer.viewport);
+
+      this.dots = document.createElementNS(SVG_NS_URL, "g") as SVGGElement;
+      this.dots.id = "cursor-hover-dots";
+
+      const radius = 2;
+      const numDots = this.pointsPerRadius[radius]!;
+      const maxDist = radius * this.patternWidth;
+
+      for (let i = 0; i < numDots; i++) {
+        let dot = document.createElementNS(SVG_NS_URL, "circle");
+        SVGNode.setAttributes(dot, {
+          fill: "white",
+          // r: 1.5,
+          r: 5,
+        });
+        this.dots.appendChild(dot);
+      }
+
+      SVGRenderer.viewport.appendChild(this.dots);
+
+      const nearestDot = (pos: number): number => {
+        return (
+          Math.ceil(pos / this.patternWidth) * this.patternWidth -
+          this.patternWidth / 2
+        );
+      };
+
+      const getLattacePoint = (
+        index: number,
+        radius: number,
+      ): [number, number] => {
+        if (index === 0) return [0, 0];
+
+        let remaining = index - 1;
+
+        for (let r = 1; r <= radius; r++) {
+          const ringSize = 4 * r;
+          if (remaining < ringSize) {
+            const side = Math.floor(remaining / r);
+            const offset = remaining % r;
+
+            console.log(Math.floor(remaining / r));
+
+            switch (side) {
+              case 0:
+                return [r - offset, offset];
+              case 1:
+                return [-offset, r - offset];
+              case 2:
+                return [-(r - offset), -offset];
+              case 3:
+                return [offset, -(r - offset)];
+            }
+          }
+          remaining -= ringSize;
+        }
+
+        throw new Error("index out of range");
+      };
+
+      const onMove = (ev: MouseEvent) => {
+        const dotsArray = this.dots.querySelectorAll("circle");
+
+        dotsArray.forEach((dot, dotNum) => {
+          const [lx, ly] = getLattacePoint(dotNum, radius);
+
+          const cursorX = ev.clientX - rect.left + viewbox.x;
+          const cursorY = ev.clientY - rect.top + viewbox.y;
+          const centerX = nearestDot(cursorX);
+          const centerY = nearestDot(cursorY);
+
+          const offX = lx * this.patternWidth;
+          const offY = ly * this.patternWidth;
+          const curDistX = centerX - offX;
+          const curDistY = centerY - offY;
+          const curDist = Math.hypot(curDistX, curDistY);
+          const t = Math.min(curDist / maxDist / 10, 1);
+          const opactiy = 1 - t * t * (3 - 2 * t);
+
+          const dotPos = {
+            cx: centerX - offX,
+            cy: centerY - offY,
+          };
+
+          SVGNode.setAttributes(dot, {
+            ...dotPos,
+            // "data-xdist-from-cursor": distX,
+            // "data-ydist-from-cursor": distY,
+          });
+
+          console.log(t, opactiy, curDist, maxDist);
+          dot.style.opacity = `${opactiy}`;
+        });
+      };
+
+      window.addEventListener("mousemove", onMove);
+    }
+  };
+
+  static BackgroundAnimations = class {
+    static patternWidth: number = 50;
+    static pattern: SVGPatternElement;
+    static dots: SVGGElement;
+
+    static shouldPlayAnimations: boolean = true;
+
+    private static resetToPattern(timeout: number) {
+      setTimeout(() => {
+        SVGRenderer.CreateBackgroundPattern();
+        this.dots.style.display = "none";
+      }, timeout);
+    }
+
+    static RippleAnimation(
+      centerX: number = Math.random(),
+      centerY: number = Math.random(),
+    ) {
+      const cols = Math.ceil(SVGRenderer.ClientWidth / this.patternWidth) + 10;
+      const rows = Math.ceil(SVGRenderer.ClientWidth / this.patternWidth) + 10;
+
+      const g = document.createElementNS(SVG_NS_URL, "g") as SVGGElement;
+      g.setAttribute("id", "background-dots");
+      this.dots = g;
+
+      let index = 0;
+      const maxDist = Math.hypot(rows, cols);
+      const centerRow = centerX * rows;
+      const centerCol = centerY * cols;
+
+      for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+          const circle = document.createElementNS(
+            SVG_NS_URL,
+            "circle",
+          ) as SVGCircleElement;
+
+          SVGNode.setAttributes(circle, {
+            cx: col * this.patternWidth - this.patternWidth / 2,
+            cy: row * this.patternWidth - this.patternWidth / 2,
+            r: 1.5,
+            fill: "gray",
+            "data-index": index,
+            "data-row": row,
+            "data-col": col,
+          });
+
+          let dist = Math.hypot(row - centerRow, col - centerCol);
+          circle.style.animation = `dots-startup 1s ease-out ${dist * 50}ms 1`;
+
+          g.appendChild(circle);
+          index++;
+        }
+      }
+
+      SVGRenderer.viewport.appendChild(g);
+
+      const bufferTime = 50;
+      this.resetToPattern(maxDist * 50 + bufferTime);
+    }
+  };
 }

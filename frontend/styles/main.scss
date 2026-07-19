@@ -202,7 +202,7 @@ main {
 }
 
 .renderer-selection-option {
-  box-sizing:border-box;
+  box-sizing: border-box;
   background-color: $layer-1-color;
   margin-top: 5px;
   margin-bottom: 5px;
@@ -280,4 +280,16 @@ main {
 
 .connecting-line {
   z-index: 9999;
+}
+
+@keyframes dots-startup {
+  0%, 100% {
+    r: 25;
+    opactiy: 1
+  }
+
+  50% {
+    r: 0;
+    opacity: 0;
+  }
 }
