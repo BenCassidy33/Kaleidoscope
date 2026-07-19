@@ -1,5 +1,5 @@
 import type { WasmNode } from "../../../build/pkg/kaleidoscope";
-import { ViewBox } from "../../utils";
+import { Utils, ViewBox } from "../../utils";
 import { type Renderer } from "../renderHandler";
 import { SVGNode } from "./node";
 
@@ -32,13 +32,21 @@ export class SVGRenderer implements Renderer {
   renderNode(node: WasmNode): void {
     SVGRenderer.nodes = [];
 
-    const root = SVGNode.FromWasmNode(node);
+    const root = SVGNode.FromWasmNode(
+      node,
+      undefined,
+      undefined,
+      undefined,
+      true,
+    );
     if (!root) {
       return;
     }
 
     SVGRenderer.nodes = SVGRenderer.FlattenNodes(root);
     SVGRenderer.Render();
+
+    SVGRenderer.MoveNodeTo(root, 100, -100, 0.05, true);
   }
 
   reset() {
@@ -156,7 +164,12 @@ export class SVGRenderer implements Renderer {
       fill: "url(#tile)",
     });
 
-    SVGRenderer.viewport.appendChild(backgroundRect);
+    if (SVGRenderer.viewport.children.length === 0) {
+      SVGRenderer.viewport.appendChild(backgroundRect);
+    } else {
+      let first=  SVGRenderer.viewport.firstElementChild;
+      SVGRenderer.viewport.insertBefore(backgroundRect, first)
+    }
   }
 
   static RedrawBackground() {
@@ -259,6 +272,51 @@ export class SVGRenderer implements Renderer {
     }
   }
 
+  // TODO: Make this a ease in out curve for nicer movements
+  static MoveNodeTo(
+    node: SVGNode,
+    targetX: number,
+    targetY: number,
+    speed: number,
+    normalize: boolean = false,
+  ) {
+    node.shouldNodeAnimationPlay = false;
+
+    const circleNode = node.toElement().querySelector("circle")!;
+    const text = node.toElement().querySelector("text")!;
+
+    let x, y;
+
+    if (normalize) {
+      let n = Utils.NormalizeCoordsToViewport(targetX, targetY, this.viewport);
+      x = n[0]!;
+      y = n[1]!;
+    } else {
+      x = targetX;
+      y = targetY;
+    }
+
+    const step = () => {
+      if (Utils.NumNear(node.cx, x!, 0.5) && Utils.NumNear(node.cy, y!, 0.5)) {
+        node.shouldNodeAnimationPlay = true;
+        return;
+      }
+
+      node.cx += (x! - node.cx) * speed;
+      node.cy += (y! - node.cy) * speed;
+      node.attributes.cx = node.cx;
+      node.attributes.cy = node.cy;
+
+      SVGNode.setAttributes(circleNode, { cx: node.cx, cy: node.cy });
+      SVGNode.setAttributes(text, { x: node.cx, y: node.cy });
+      SVGRenderer.RenderConnections();
+
+      requestAnimationFrame(step);
+    };
+
+    requestAnimationFrame(step);
+  }
+
   static HandleHeldNodeMove(node: SVGNode, el: Element) {
     node.shouldNodeAnimationPlay = false;
 
@@ -278,12 +336,11 @@ export class SVGRenderer implements Renderer {
 
     window.addEventListener("mousemove", onMove);
 
-    let isRunning = true;
-
+    let isHeld = true;
     const lag = 0.12;
 
     const step = () => {
-      if (!isRunning) return;
+      if (!isHeld) return;
 
       node.cx += (targetX - node.cx) * lag;
       node.cy += (targetY - node.cy) * lag;
@@ -299,7 +356,7 @@ export class SVGRenderer implements Renderer {
     requestAnimationFrame(step);
 
     window.addEventListener("mouseup", () => {
-      isRunning = false;
+      isHeld = false;
       window.removeEventListener("mousemove", onMove);
       SVGRenderer.HandleNodeReleased(node, el);
     });
@@ -487,7 +544,6 @@ export class SVGRenderer implements Renderer {
             // "data-ydist-from-cursor": distY,
           });
 
-          console.log(t, opactiy, curDist, maxDist);
           dot.style.opacity = `${opactiy}`;
         });
       };

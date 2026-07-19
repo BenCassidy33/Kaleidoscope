@@ -10,6 +10,48 @@ export class Utils {
       ? (Math.pow(2 * x, 2) * ((c2 + 1) * 2 * x - c2)) / 2
       : (Math.pow(2 * x - 2, 2) * ((c2 + 1) * (x * 2 - 2) + c2) + 2) / 2;
   }
+
+  static NumNear(num: number, other: number, error: number): boolean {
+    if (other - error < num && num < other + error) return true;
+    return false;
+  }
+
+  static NormalizeCoordsToViewport (
+    x: number,
+    y: number,
+    viewport: SVGElement
+  ) {
+    const rect = viewport.getBoundingClientRect();
+
+    return [x + (rect.width / 2), y + (rect.height / 2)]
+  }
+
+  static UnnormalizeCoordsFromViewport(
+    x: number,
+    y: number,
+    viewport: SVGElement
+  ) {
+    const rect = viewport.getBoundingClientRect();
+
+    return [x - (rect.width / 2), y - (rect.height / 2)]
+  }
+
+  static NormalizeClientCoordsToViewport(
+    clientX: number,
+    clientY: number,
+    viewport: SVGElement,
+  ): [number, number] {
+    const rect = viewport.getBoundingClientRect();
+    const viewbox = ViewBox.Get(viewport)!;
+
+    const scaleX = viewbox.width / rect.width;
+    const scaleY = viewbox.height / rect.height;
+
+    const x = (clientX + rect.left) * scaleX - viewbox.x;
+    const y = (clientY + rect.top) * scaleY - viewbox.y;
+
+    return [x, y];
+  }
 }
 
 export function TODO(msg: string = "todo") {

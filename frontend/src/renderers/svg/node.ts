@@ -1,4 +1,5 @@
 import { type WasmNode } from "../../../build/pkg/kaleidoscope";
+import { Utils } from "../../utils";
 import { SVG_NS_URL, SVGRenderer } from "./svg";
 
 const X_NODE_SEPERATION: number = 80;
@@ -64,20 +65,18 @@ export class SVGNode {
     this.right = right;
     if (inner) this.setInner(inner);
 
-    if (normalize) {
-      // let { x, y } = SVGNode.NormalizePosition(attributes.cx!, attributes.cy!);
-      this.cx = attributes.cx!;
-      this.cy = attributes.cy!;
-    } else {
-      this.cx = attributes.cx!;
-      this.cy = attributes.cy!;
-    }
+    // const [cx, cy] = Utils.NormalizeCoordsToViewport(attributes.cx!, attributes.cy!, SVGRenderer.viewport);
+    // console.log(attributes.cx, attributes.cy, cx, cy);
+    // this.cx = cx;
+    // this.cy = cy;
 
-    // this.el = this.toElement();
-  }
-
-  static RealizePosition(x: number, y: number): [number, number] {
-    return [x - SVGRenderer.ClientWidth / 2, y - SVGRenderer.ClientWidth / 2];
+    // if (normalize) {
+    this.cx = attributes.cx!;
+    this.cy = attributes.cy!;
+    // } else {
+    //   this.cx = attributes.cx!;
+    //   this.cy = attributes.cy!;
+    // }
   }
 
   static setAttributes(e: Element, attributes: Object) {
@@ -93,11 +92,16 @@ export class SVGNode {
     if (this.el) return this.el;
 
     const circle = document.createElementNS(SVG_NS_URL, "circle");
+    const [x, y] = Utils.NormalizeClientCoordsToViewport(
+      this.attributes.cx!,
+      this.attributes.cy!,
+      SVGRenderer.viewport,
+    );
 
     SVGNode.setAttributes(circle, {
       ...this.attributes,
-      cx: this.attributes.cx!,
-      cy: this.attributes.cy!,
+      cx: x,
+      cy: y,
     });
 
     if (this.inner !== undefined) {
@@ -197,16 +201,21 @@ export class SVGNode {
     depth: number = 1,
     parent?: SVGNode,
     isLeft: boolean = false,
+    isRoot: boolean = false,
   ): SVGNode | void {
     const x = isLeft ? -1 : 1;
-    const pos = (parent ? parent.cx : 0) + x * X_NODE_SEPERATION;
-    const id = Math.random() * 9_152_052;
+    const posX = isRoot ? 0 : (parent ? Utils.UnnormalizeCoordsFromViewport(parent.attributes.cx!, 0, SVGRenderer.viewport)[0]! : 0) + (x * X_NODE_SEPERATION);
+    const posY = isRoot ? 0 : Y_NODE_SEPERATION * (depth * 0.8);
+
+    const [px, py] = Utils.NormalizeCoordsToViewport(posX, posY, SVGRenderer.viewport);
+
+    const id = Math.round(Math.random() * 9_152_052);
 
     let svg_node = new SVGNode(
       {
         id: `${id}`,
-        cx: pos,
-        cy: Y_NODE_SEPERATION * (depth * 0.8),
+        cx: px,
+        cy: py,
         r: 30,
         fill: "white",
         stroke: "none",
