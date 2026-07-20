@@ -1,18 +1,21 @@
 #![allow(dead_code, unused_variables)]
 
-use std::ops::Sub;
-
 use clap::Parser;
 use kaleidoscope::{
-    args::{Args, Subcommands},
-    repl::run_repl,
+    args::{Args, Subcommands, read_files}, invocations::include::IncludeInvocation, repl::run_repl,
 };
 use miette::ErrReport;
 
 fn main() -> miette::Result<()> {
+
+    dbg!(IncludeInvocation::parse_include_statement("include! vars lib with G"));
+    return Ok(());
+
+
     let args = Args::parse();
 
-    if args.file.is_some() {
+    if let Some(fp) = args.file_path {
+        let _ = read_files(fp);
         todo!();
     }
 

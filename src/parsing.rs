@@ -2,7 +2,9 @@ use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
-    invocations::Invocation, repr_wasm, types::{Node, ParsingError, VariableNode, WasmNode},
+    invocations::Invocation,
+    repr_wasm,
+    types::{Node, ParsingError, VariableNode, WasmNode},
 };
 use std::{collections::HashMap, fmt::Display};
 
@@ -195,7 +197,7 @@ where
 #[display("{ident} := {body}")]
 pub struct WasmAssignment {
     ident: VariableNode,
-    body: Node
+    body: Node,
 }
 
 repr_wasm!(WasmAssignment);

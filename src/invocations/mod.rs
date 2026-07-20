@@ -1,3 +1,5 @@
+pub mod include;
+
 use enum_iterator::{Sequence, all};
 use miette::{Diagnostic, SourceSpan};
 use serde::Serialize;
