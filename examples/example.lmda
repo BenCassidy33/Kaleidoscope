@@ -1,0 +1,3 @@
+include! main.lmda with print!
+
+G := Lm.m

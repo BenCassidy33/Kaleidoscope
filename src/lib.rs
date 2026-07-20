@@ -6,6 +6,7 @@ pub mod utils;
 pub mod interpreter;
 pub mod invocations;
 pub mod opts;
+pub mod module;
 
 pub use parsing::*;
 

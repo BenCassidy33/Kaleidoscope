@@ -1,14 +1,21 @@
 #![allow(dead_code, unused_variables)]
 
+use std::path::PathBuf;
+
 use clap::Parser;
 use kaleidoscope::{
-    args::{Args, Subcommands, read_files}, invocations::include::IncludeInvocation, repl::run_repl,
+    args::{Args, Subcommands, read_files}, module::Module, repl::run_repl,
 };
 use miette::ErrReport;
 
 fn main() -> miette::Result<()> {
+    let mut module = Module::new(PathBuf::from("./examples/example.lmda")).unwrap();
+    module.generate_assignment_map()?;
+    module.generate_inclusion_map()?;
 
-    dbg!(IncludeInvocation::parse_include_statement("include! vars lib with G"));
+    dbg!(module);
+
+    // dbg!(IncludeInvocation::parse_include_statement("include! vars lib with G"));
     return Ok(());
 
 

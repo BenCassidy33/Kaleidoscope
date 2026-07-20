@@ -1,6 +1,8 @@
+use getset::Getters;
+
 use crate::types::ParsingError;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Getters, PartialEq)]
 pub struct IncludeInvocation {
     included_items: Option<Vec<String>>,
     included_files: Vec<String>,
@@ -8,6 +10,14 @@ pub struct IncludeInvocation {
 
 impl IncludeInvocation {
     pub fn parse_include_statement(stmt: &str) -> Result<IncludeInvocation, ParsingError> {
+        if !stmt.trim().starts_with("include!") {
+            return Err(ParsingError::new(
+                stmt,
+                Some("include directive must have include!"),
+                0..stmt.len(),
+                None,
+            ));
+        }
         let mut parts = stmt.trim().split(" ");
         let start = parts.next();
 

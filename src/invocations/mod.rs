@@ -6,6 +6,7 @@ use serde::Serialize;
 use thiserror::Error;
 
 use crate::{
+    invocations::include::IncludeInvocation,
     types::{CreatedAt, ParsingError, Span},
     utils::find_closing_delim,
 };
@@ -46,6 +47,7 @@ pub enum BuiltinInvocations {
 
     SetOpt,
     Define,
+    Include,
 }
 
 impl TryFrom<&str> for BuiltinInvocations {
@@ -76,6 +78,10 @@ impl From<&str> for InvocationKind {
     }
 }
 
+trait InvocationT {
+    fn invoke(&self) -> Result<(), InvocationError>;
+}
+
 #[derive(Debug, Serialize, Clone)]
 pub struct Invocation {
     pub(crate) kind: InvocationKind,
@@ -86,6 +92,20 @@ pub struct Invocation {
 
 impl Invocation {
     pub fn parse(mut expr: &str, start: usize) -> Result<(Vec<Invocation>, &str), ParsingError> {
+        if expr.starts_with("include!") {
+            // let include = IncludeInvocation::parse_include_statement(expr)?;
+            return Ok((
+                vec![Invocation {
+                    kind: InvocationKind::Builtin(BuiltinInvocations::Include),
+                    ident: "include!".to_string(),
+                    args: Vec::new(),
+                    span: (start..expr.len()).into(),
+                }],
+                "",
+            ));
+            // return Ok()
+        }
+
         let mut invocations = Vec::new();
 
         while let Some(delim_idx) = expr.find('!') {
