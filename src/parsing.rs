@@ -64,7 +64,6 @@ impl Lambda {
         I: Into<String>,
     {
         let input = input.into();
-        dbg!(&input);
         let mut lines = input.lines().peekable();
         let mut raw_exprs = Vec::new();
 
@@ -88,12 +87,12 @@ impl Lambda {
             if let Some(idx) = expr.find(":=") {
                 let (raw_ident, raw_body) = expr.split_once(":=").unwrap();
                 let ident = VariableNode::parse_str(
-                    &raw_ident.replace(|c: char| c.is_ascii_whitespace(), ""),
+                    raw_ident,
                     0,
                 )?;
 
                 let body = Node::parse_str(
-                    &raw_body.replace(|c: char| c.is_ascii_whitespace(), ""),
+                    raw_body,
                     idx + 2,
                 )?;
 

@@ -11,7 +11,9 @@ use crate::{
     stdlib::generate_lambda_number,
     types::{
         ApplicationNode, CreatedAt, ParsingError, ReductionError, Span,
-        abstraction::AbstractionNode, variable::VariableNode,
+        WasmNodeInnerKind::Abstraction,
+        abstraction::{self, AbstractionNode},
+        variable::VariableNode,
     },
     utils::find_closing_delim,
 };
@@ -108,6 +110,7 @@ impl Node {
     pub fn reduce_self(self) -> Result<Node, ReductionError> {
         match self {
             Node::Application(application_node) => application_node.reduce_self(),
+            Node::Abstraction(abstraction) => abstraction.reduce_self(),
             _ => Ok(self),
         }
     }
@@ -124,6 +127,40 @@ impl Node {
 
             Node::Abstraction(abstraction_node) => abstraction_node.reduce(with, bound),
             Node::Application(application_node) => application_node.reduce(with, bound),
+        }
+    }
+
+    pub fn substitute(self, var: &VariableNode, replacement: &Node) -> Node {
+        match self {
+            Node::Variable(ref v) => {
+                if v == var {
+                    replacement.clone()
+                } else {
+                    self
+                }
+            }
+
+            Node::Abstraction(ab) => {
+                let Node::Variable(ref bound_var) = *ab.bound else {
+                    unreachable!()
+                };
+
+                if bound_var == var {
+                    Node::Abstraction(ab)
+                } else {
+                    Node::Abstraction(AbstractionNode {
+                        bound: ab.bound,
+                        body: Box::new(ab.body.substitute(var, replacement)),
+                        span: ab.span,
+                    })
+                }
+            }
+
+            Node::Application(ap) => Node::Application(ApplicationNode {
+                left: Box::new(ap.left.substitute(var, replacement)),
+                right: Box::new(ap.right.substitute(var, replacement)),
+                span: ap.span,
+            }),
         }
     }
 
@@ -181,8 +218,10 @@ impl Node {
     }
 
     pub fn parse_str(mut s: &str, start: usize) -> Result<Self, ParsingError> {
-        dbg!(&s);
-        let mut offset = 0;
+        let p = s.find(|c: char| !c.is_whitespace()).unwrap_or(0);
+        s = &s[p..];
+        let mut offset = p;
+
         while s.starts_with('(') {
             let range = find_closing_delim(s, ['('], ')').map_err(|_| {
                 ParsingError::missing_closing_delimiter(s, '(', 0, Some(CreatedAt::new()))
@@ -206,17 +245,8 @@ impl Node {
 
         if s.starts_with(VALID_LAMBDA_CHARACTERS) {
             let ab = AbstractionNode::parse_str(s, start + offset)?;
-            dbg!(
-                s,
-                ab.to_string(),
-                ab.span().len() < s.len() - 1,
-                ab.span().len(),
-                s.len()
-            );
-
-            // TODO: fuck utf8 'λ' counts as two characters...
+            // TODO: fuck utf8. 'λ' counts as two characters...
             if ab.to_string().chars().count() < s.len() && s[ab.span().len()..] != *")" {
-                dbg!(s, ab.to_string());
                 let tmp = &s[ab.span().len()..];
                 let r = if tmp.ends_with(")") {
                     Node::parse_str(&tmp[0..tmp.len() - 1], ab.span().end)?
@@ -232,9 +262,13 @@ impl Node {
             return Ok(Node::Abstraction(ab));
         }
 
-        if let Ok(var) = VariableNode::parse_str(s, start) {
-            if var.span().len() < s.len() {
-                let r = Node::parse_str(&s[var.span().len()..], var.span().end)?;
+        let idx = s.chars().position(|c| !c.is_whitespace()).unwrap_or(0);
+
+        if let Ok(var) = VariableNode::parse_str(&s[idx..], start + idx) {
+            if var.span().len() < s.len() - idx {
+                let rs = &s[var.span().len()..];
+                dbg!(rs);
+                let r = Node::parse_str(rs, var.span().end + idx)?;
                 let sp = start..r.span().end;
                 let ap = ApplicationNode::new(Node::Variable(var), r, sp);
 
@@ -297,6 +331,9 @@ impl WasmNode {
     pub fn reduce(self) -> Result<WasmNode, ReductionError> {
         match self.inner {
             Node::Application(application_node) => application_node.reduce_self().map(Into::into),
+            Node::Abstraction(abstraction) => {
+                todo!()
+            }
             _ => Ok(self),
         }
     }

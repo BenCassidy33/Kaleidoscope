@@ -53,31 +53,32 @@ stdlib_assignments! {
     { C => Lx.Ly.Lz.xzy },
     { W => Lx.Ly.xyy },
     { U => (Lx.x)x },
-    { O_{mega} => UU },
-    { Y => BU(CBU) },
-    { T_{RUE} => Lx.Ly.x },
-    { F_{ALSE} => Lx.Ly.y },
+    { OMEGA => U U },
+    { Y => BU(C(B(U))) },
 
-    { A_{ND} => Lp.Lq.((pq)p) },
-    { O_R => Lp.Lq.ppq },
-    { N_{OT} => Lp.p T_{RUE} F_{ALSE} },
-    { I_{FTHENELSE} => Lp.La.Lb.(pab) },
+    { TRUE => Lx.Ly.x },
+    { FALSE => Lx.Ly.y },
 
-    { S_{UCC} => Ln.Lf.Lx.(f((nf)x)) },
-    { P_{LUS} => Lm.Ln.(mS_{UCC}n) },
-    { S_{UB} => Lm.Ln.(n P_{RED} m) },
-    { M_{ULT} => Lm.Ln.(m(P_{LUS}n) 0) },
-    { P_{OW} => Lb.Ln.(nb) },
+    { AND => Lp.Lq.((pq)p) },
+    { OR => Lp.Lq.ppq },
+    { NOT => Lp.p(TRUE FALSE) },
+    { IFTHENELSE => Lp.La.Lb.(pab) },
 
-    { P_{AIR} => Lx.Ly.Lf.(f(xy)) },
-    { F_{IRST} => Lp.(p(Lx.Ly.x)) },
-    { S_{ECOND} => Lp.(p(Lx.Ly.y)) },
+    { SUCC => Ln.Lf.Lx.(f((nf)x)) },
+    { PLUS => Lm.Ln.(m SUCC n) },
+    { SUB => Lm.Ln.(n PRED m) },
+    { MULT => Lm.Ln.((m PLUS n) 0) },
+    { POW => Lb.Ln.(nb) },
 
-    { N_{IL} => Lf.T_{RUE} },
-    { N_{ULL} => Lp.p(Lx.Ly.F_{ALSE}) },
+    { PAIR => Lx.Ly.Lf.(f(xy)) },
+    { FIRST => Lp.(p(Lx.Ly.x)) },
+    { SECOND => Lp.(p(Lx.Ly.y)) },
 
-    { I_{SZERO} => Ln.(n (Lx.F_{ALSE}) T_{RUE}) },
-    { L_{EQ} => Lm.Ln.(I_{SZERO}(S_{UB}mn)) },
+    { NIL => Lf.TRUE },
+    { NULL => Lp.p(Lx.Ly.FALSE) },
 
-    { P_{REDICATE} => Ln.(n(Lg.Lk.I_{SZERO})(g1)k(P_{LUS}((gk)1))(Lv.0)0) }
+    { ISZERO => Ln.(n (Lx.FALSE) TRUE) },
+    { LEQ => Lm.Ln.(ISZERO(SUB mn)) },
+
+    { PREDICATE => Ln.(n(Lg.Lk.ISZERO)(g1)k(PLUS((gk)1))(Lv.0)0) }
 }

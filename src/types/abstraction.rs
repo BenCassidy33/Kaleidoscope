@@ -83,59 +83,33 @@ impl AbstractionNode {
     }
 
     pub fn reduce(
-        mut self,
+        self,
         with: Node,
-        mut bound: Option<&VariableNode>,
+        bound: Option<&VariableNode>,
     ) -> Result<Node, ReductionError> {
-        if bound.is_none() {
-            let Node::Variable(ref b) = *self.bound else {
-                unreachable!();
-            };
 
-            bound = Some(Box::leak(Box::new(b.clone())));
-        }
-
-        match *self.body {
-            Node::Variable(ref variable_node) => {
-                if bound.is_some_and(|bound| bound == variable_node) {
-                    return Ok(with);
-                }
-
-                Ok(self.into())
-
-                // let s = self.to_string();
-                // let l = s.len();
-                //
-                // Err(ReductionError::new(
-                //     s,
-                //     Some(format!(
-                //         "Abstraction's bounding variable does not appear in its body. Expected to find a bound '{}'",
-                //         bound.unwrap()
-                //     )),
-                //     0..l,
-                //     Some(CreatedAt::new()),
-                // ))
+        let bound = match bound {
+            Some(b) => b,
+            None => {
+                let Node::Variable(ref b) = *self.bound else {
+                    unreachable!();
+                };
+                b
             }
+        };
 
-            // TODO: i think this is wrong, patch fix for now...
-            Node::Abstraction(abstraction_node) => {
-                self.bound = abstraction_node.bound().clone();
-                self.body = Box::new(abstraction_node.reduce(with, bound)?);
-                Ok(Node::Abstraction(self))
-            },
+        Ok(self.body.substitute(bound, &with))
+    }
 
-            Node::Application(application) => {
-                if let Some(bound) = bound {
-                    application.reduce(with, Some(bound))
-                } else {
-                    let Node::Variable(b) = self.bound.as_ref() else {
-                        unreachable!("Extend syntax not currently supported.")
-                    };
+    pub fn reduce_self(mut self) -> Result<Node, ReductionError> {
+        self.body = match *self.body {
+            Node::Abstraction(ab) => Box::new(ab.reduce_self()?),
+            Node::Application(ap) => Box::new(ap.reduce_self()?),
 
-                    application.reduce(with, Some(b))
-                }
-            }
-        }
+            node => Box::new(node)
+        };
+
+        Ok(self.into())
     }
 }
 

@@ -4,10 +4,8 @@ use std::fmt::Display;
 use wasm_bindgen::prelude::*;
 
 use crate::{
-    VALID_LAMBDA_CHARACTERS, repr_wasm,
-    types::{
-        CreatedAt, ParsingError, ReductionError, Span, WasmNode, abstraction::AbstractionNode,
-        node::Node, variable::VariableNode,
+    VALID_LAMBDA_CHARACTERS, repr_wasm, types::{
+        CreatedAt, Node::Application, ParsingError, ReductionError, Span, WasmNode, abstraction::AbstractionNode, node::Node, variable::VariableNode,
     },
 };
 
@@ -31,7 +29,7 @@ impl From<ApplicationNode> for Node {
 impl Display for ApplicationNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match (self.left.as_ref(), self.right.as_ref()) {
-            (Node::Variable(_), Node::Variable(_)) => write!(f, "{}{}", self.left, self.right),
+            (Node::Variable(_), Node::Variable(_)) => write!(f, "({})({})", self.left, self.right),
             (_, Node::Variable(_)) => write!(f, "({}){}", self.left, self.right),
             (Node::Variable(_), _) => write!(f, "{}({})", self.left, self.right),
 
@@ -40,7 +38,7 @@ impl Display for ApplicationNode {
                 write!(f, "({})({})", self.left, self.right)
             }
 
-            _ => write!(f, "{}{}", self.left, self.right),
+            _ => write!(f, "({}{})", self.left, self.right),
         }
     }
 }
@@ -92,77 +90,42 @@ impl ApplicationNode {
     }
 
     pub fn reduce(
-        mut self,
+        self,
         with: Node,
         bound: Option<&VariableNode>,
     ) -> Result<Node, ReductionError> {
-        if let Some(bound) = bound {
-            match *self.left {
-                Node::Variable(ref variable_node) => {
-                    if variable_node == bound {
-                        self.left = Box::new(with.clone())
-                    }
-                }
-
-                Node::Abstraction(abstraction_node) => {
-                    self.left = Box::new(abstraction_node.reduce(with.clone(), Some(bound))?)
-                }
-
-                Node::Application(application_node) => {
-                    self.left = Box::new(application_node.reduce(with.clone(), Some(bound))?)
-                }
-            };
-
-            match *self.right {
-                Node::Variable(ref variable_node) => {
-                    if variable_node == bound {
-                        self.right = Box::new(with.clone())
-                    }
-                }
-
-                Node::Abstraction(abstraction_node) => {
-                    self.right = Box::new(abstraction_node.reduce(with.clone(), Some(bound))?)
-                }
-
-                Node::Application(application_node) => {
-                    self.right = Box::new(application_node.reduce(with.clone(), Some(bound))?)
-                }
-            };
-
-            // dbg!(self.clone().to_string(), with.to_string(), bound);
+        let Some(bound) = bound else {
             return Ok(self.into());
-        }
+        };
 
-        self.left = Box::new(self.left.reduce(with.clone(), bound)?);
-        self.right = Box::new(self.right.reduce(with, bound)?);
+        Ok(Node::Application(self).substitute(bound, &with))
 
-        Ok(self.into())
     }
 
-    // TODO: optimize clones out of this
     pub fn reduce_self(self) -> Result<Node, ReductionError> {
-        match (self.left.as_ref(), self.right.as_ref()) {
-            (Node::Abstraction(ab), other) => ab.clone().reduce(other.clone(), None),
-            (other, Node::Abstraction(ab)) => ab.clone().reduce(other.clone(), None),
+        match *self.left {
+            Node::Abstraction(ab) => {
+                let Node::Variable(ref bound_var) = *ab.bound else {
+                    unreachable!()
+                };
 
-            (other, Node::Application(ap)) => {
-                let new = ap.clone().reduce(other.clone(), None)?;
-                if *self.right == new {
-                    return Ok(self.into());
-                }
-
-                Ok(new)
+                Ok(ab.body.substitute(bound_var, &self.right))
             }
 
-            (Node::Application(ap), other) => {
-                let new = ap.clone().reduce(other.clone(), None)?;
-                if *self.left == new {
-                    return Ok(self.into());
+            Node::Application(ap) => {
+                let reduced_left = ap.clone().reduce_self()?;
+                if reduced_left == Node::Application(ap) {
+                    let reduced_right = self.right.reduce_self()?;
+                    Ok(ApplicationNode::new(reduced_left, reduced_right, self.span).into())
+                } else {
+                    Ok(ApplicationNode::new(reduced_left, *self.right, self.span).into())
                 }
-
-                Ok(new)
             }
-            _ => Ok(self.into()),
+
+            left => {
+                let reduced_right = self.right.reduce_self()?;
+                Ok(ApplicationNode::new(left, reduced_right, self.span).into())
+            }
         }
     }
 }

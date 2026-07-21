@@ -8,18 +8,16 @@ use std::{
 
 use clap::Parser;
 use kaleidoscope::{
-    Lambda, LambdaAssignment, LambdaKind, LambdaStatement, UnwrapExpressions, args::{Args, Subcommands}, interpreter::InterpretingError, repl::run_repl, stdlib::{self, generate_lambda_number, stdlib_assignments}, types::{Node, VariableNode},
+    Lambda, LambdaAssignment, LambdaKind, LambdaStatement, UnwrapExpressions, UnzipExpressions,
+    args::{Args, Subcommands},
+    interpreter::InterpretingError,
+    repl::run_repl,
+    stdlib::{self, generate_lambda_number, stdlib_assignments},
+    types::{Node, VariableNode},
 };
 use miette::ErrReport;
 
 fn main() -> miette::Result<()> {
-    // dbg!(generate_lambda_number(1).to_string());
-
-    dbg!(VariableNode::parse_str("HELLO", 0));
-    // stdlib_assignments();
-    todo!("parser broke again!");
-    todo!("Remove stdlib arguments from main function...");
-
     let args = Args::parse();
 
     if args.subcommands.is_none() {
@@ -98,7 +96,7 @@ pub fn run(args: &Args) -> miette::Result<()> {
                 };
             }
 
-            LambdaKind::Statement(LambdaStatement{ body }) => {
+            LambdaKind::Statement(LambdaStatement { body }) => {
                 let original = body.clone();
 
                 let rep = body.clone().replace_assignments(&assignments)?;
@@ -146,7 +144,7 @@ pub fn run(args: &Args) -> miette::Result<()> {
 
     let reduced = reduced
         .iter()
-        .map(|n| n.to_string())
+        .map(|n| format!("{}", n))
         .collect::<Vec<_>>()
         .join("\n");
 

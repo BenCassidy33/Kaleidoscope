@@ -100,13 +100,13 @@ impl VariableNode {
             ident: ident.to_string(),
             span: match subscript {
                 Some(ref sub) => {
-                    if !had_curly {
-                        Span::new(start, start + sub.len() + 2)
+                    if had_curly {
+                        Span::new(start, start + ident.len() + sub.len() + 3)
                     } else {
-                        Span::new(start, start + sub.len() + 4)
+                        Span::new(start, start + ident.len() + sub.len() + 1)
                     }
                 }
-                None => Span::new(start, start + 1),
+                None => Span::new(start, start + ident.len()),
             },
             subscript,
             is_stdlib: false,
@@ -125,7 +125,7 @@ impl VariableNode {
 
     pub fn parse_str(s: &str, start: usize) -> Result<Self, ParsingError> {
         if s.starts_with('_')
-            || s.starts_with(VALID_LAMBDA_CHARACTERS) && (s.len() == 1 || !s.contains('_'))
+            || s.starts_with(VALID_LAMBDA_CHARACTERS) && s.len() == 1 && !s.contains('_')
         {
             Err(ParsingError::new(
                 s,
