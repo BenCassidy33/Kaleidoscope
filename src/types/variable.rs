@@ -17,6 +17,7 @@ pub struct VariableNode {
     pub(crate) ident: char,
     pub(crate) subscript: Option<String>,
     pub(crate) span: Span,
+    pub(crate) is_stdlib: bool
 }
 
 repr_wasm!(VariableNode);
@@ -108,6 +109,7 @@ impl VariableNode {
                 None => Span::new(start, start + 1),
             },
             subscript,
+            is_stdlib: false
         }
     }
 

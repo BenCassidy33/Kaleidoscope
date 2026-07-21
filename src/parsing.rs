@@ -23,6 +23,7 @@ impl Display for Lambda {
             LambdaKind::Assignment {
                 ref ident,
                 ref body,
+                ..
             } => write!(f, "{} := {}", ident, body),
             LambdaKind::Statement { ref body } => write!(f, "{}", body),
         }
@@ -31,14 +32,19 @@ impl Display for Lambda {
 
 #[derive(Debug, Serialize, Clone, IsVariant)]
 pub enum LambdaKind {
-    Assignment { ident: VariableNode, body: Node },
-    Statement { body: Node },
+    Assignment {
+        ident: VariableNode,
+        body: Node,
+    },
+    Statement {
+        body: Node,
+    },
 }
 
 impl Display for LambdaKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            LambdaKind::Assignment { ident, body } => write!(f, "{} := {}", ident, body),
+            LambdaKind::Assignment { ident, body, .. } => write!(f, "{} := {}", ident, body),
             LambdaKind::Statement { body } => write!(f, "{}", body),
         }
     }
@@ -83,7 +89,10 @@ impl Lambda {
                 )?;
 
                 Ok(Lambda {
-                    kind: LambdaKind::Assignment { ident, body },
+                    kind: LambdaKind::Assignment {
+                        ident,
+                        body,
+                    },
                 })
             } else {
                 Ok(Lambda {
@@ -100,7 +109,11 @@ impl Lambda {
         let mut map = HashMap::new();
 
         for expression in expressions {
-            if let LambdaKind::Assignment { ident, body } = &expression.kind {
+            if let LambdaKind::Assignment {
+                ident,
+                body,
+            } = &expression.kind
+            {
                 map.insert(ident.clone(), body.clone());
             }
         }
@@ -213,7 +226,7 @@ pub enum WasmLambdaKindInner {
 impl From<LambdaKind> for WasmLambdaKind {
     fn from(val: LambdaKind) -> Self {
         match val {
-            LambdaKind::Assignment { ident, body } => WasmLambdaKind {
+            LambdaKind::Assignment { ident, body, .. } => WasmLambdaKind {
                 kind: WasmLambdaKindInner::Assignment,
                 assignment: Some(WasmAssignment { ident, body }),
                 statement: None,

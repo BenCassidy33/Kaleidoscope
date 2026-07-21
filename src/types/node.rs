@@ -102,6 +102,13 @@ impl Node {
         }
     }
 
+    pub fn reduce_self(self) -> Result<Node, ReductionError> {
+        match self {
+            Node::Application(application_node) => application_node.reduce_self(),
+            _ => Ok(self),
+        }
+    }
+
     pub fn reduce(self, with: Node, bound: Option<&VariableNode>) -> Result<Node, ReductionError> {
         match self {
             Node::Variable(ref variable_node) => {
@@ -170,8 +177,12 @@ impl Node {
             let ab = AbstractionNode::parse_str(s, start + offset)?;
 
             if ab.span().len() < s.len() && s[ab.span().len()..] != *")" {
-                dbg!(&s[ab.span().len()..]);
-                let r = Node::parse_str(&s[ab.span().len()..], ab.span().end)?;
+                let tmp = &s[ab.span().len()..];
+                let r = if tmp.ends_with(")") {
+                    Node::parse_str(&tmp[0..tmp.len() - 1], ab.span().end)?
+                } else {
+                    Node::parse_str(&s[ab.span().len()..], ab.span().end)?
+                };
                 let sp = start..r.span().end;
                 let ap = ApplicationNode::new(Node::Abstraction(ab), r, sp);
 
@@ -275,7 +286,6 @@ pub fn wasm_node_inner_kind_is_application(inner: WasmNodeInnerKind) -> bool {
     matches!(inner, WasmNodeInnerKind::Application)
 }
 
-
 #[wasm_bindgen(js_name = wasmNodeInnerKindToString)]
 pub fn wasm_node_inner_kind_to_js_string(inner: WasmNodeInnerKind) -> String {
     format!("{}", inner)
@@ -352,9 +362,8 @@ impl From<Node> for WasmNodeInner {
                 kind: WasmNodeInnerKind::Application,
                 variable: None,
                 abstraction: None,
-                application: Some(application_node)
+                application: Some(application_node),
             },
         }
     }
 }
-

@@ -1,16 +1,12 @@
 use console::Term;
 use derive_more::Display;
 use enum_iterator::{Sequence, all};
-use miette::IntoDiagnostic;
 use serde_json::Value;
-use std::{
-    collections::HashMap,
-    io::{self, Write},
-};
+use std::io::{self, Write};
 use thiserror::Error;
 
 use crate::{
-    Lambda, LambdaKind, UnwrapExpressions, UnzipExpressions,
+    Lambda, UnwrapExpressions,
     interpreter::{self, InterpretingError},
     opts::{CreateDefaultOpts, Opts},
 };
@@ -31,6 +27,7 @@ pub enum ReplError {
 }
 
 pub fn run_repl(show_hello: bool) -> Result<(), ReplError> {
+    todo!("Update to replace variables! and use stdlib");
     let mut term = Term::stdout();
     let mut opts = Opts::create_default_options();
     let mut history: Vec<String> = Vec::new();

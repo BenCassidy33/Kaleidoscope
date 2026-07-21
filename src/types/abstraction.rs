@@ -28,7 +28,7 @@ impl From<AbstractionNode> for Node {
 
 impl Display for AbstractionNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}{}.{}", LAMBDA_CHAR, self.bound, self.body)
+        write!(f, "{}{}.({})", LAMBDA_CHAR, self.bound, self.body)
     }
 }
 
@@ -101,18 +101,20 @@ impl AbstractionNode {
                     return Ok(with);
                 }
 
-                let s = self.to_string();
-                let l = s.len();
+                Ok(self.into())
 
-                Err(ReductionError::new(
-                    s,
-                    Some(format!(
-                        "Abstraction's bounding variable does not appear in its body. Expected to find a bound '{}'",
-                        bound.unwrap()
-                    )),
-                    0..l,
-                    Some(CreatedAt::new()),
-                ))
+                // let s = self.to_string();
+                // let l = s.len();
+                //
+                // Err(ReductionError::new(
+                //     s,
+                //     Some(format!(
+                //         "Abstraction's bounding variable does not appear in its body. Expected to find a bound '{}'",
+                //         bound.unwrap()
+                //     )),
+                //     0..l,
+                //     Some(CreatedAt::new()),
+                // ))
             }
 
             // TODO: i think this is wrong, patch fix for now...

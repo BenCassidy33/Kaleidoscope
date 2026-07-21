@@ -15,7 +15,7 @@ use crate::{
 
 #[wasm_bindgen]
 #[derive(Clone, Error, Debug, Diagnostic, Serialize)]
-#[error("Parsing Error")]
+#[error("InterpretingError")]
 pub struct InterpretingError {
     #[source_code]
     pub(crate) src: String,
@@ -25,6 +25,9 @@ pub struct InterpretingError {
     #[label("{}", msg.as_deref().unwrap_or("here"))]
     pub(crate) error_span: SourceSpan,
     pub(crate) created_at: Option<CreatedAt>,
+
+    #[help]
+    pub(crate) help: Option<String>
 }
 
 repr_wasm!(InterpretingError);
@@ -36,6 +39,7 @@ impl From<std::io::Error> for InterpretingError {
             msg: Some(format!("std::io error! Error: {:?}", value)),
             error_span: (0..0).into(),
             created_at: None,
+            help: None
         }
     }
 }
@@ -47,6 +51,7 @@ impl From<ReductionError> for InterpretingError {
             msg: val.msg,
             error_span: val.error_span,
             created_at: val.created_at,
+            help: None
         }
     }
 }
@@ -58,6 +63,7 @@ impl From<ParsingError> for InterpretingError {
             msg: value.msg,
             error_span: value.error_span,
             created_at: value.created_at,
+            help: None
         }
     }
 }
@@ -68,12 +74,14 @@ impl InterpretingError {
         msg: Option<S>,
         error_span: N,
         created_at: Option<CreatedAt>,
+        help: Option<String>
     ) -> Self {
         Self {
             src: src.into(),
             msg: msg.map(|f| f.into()),
             error_span: error_span.into(),
             created_at,
+            help
         }
     }
 }

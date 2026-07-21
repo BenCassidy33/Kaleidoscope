@@ -66,8 +66,6 @@ impl ApplicationNode {
         None
     }
 
-    // TODO: Should replace one at a time or both at once?
-    // Both at once for now...
     pub fn replace<F: Fn((&Node, Option<&VariableNode>)) -> bool>(
         mut self,
         f: &F,
@@ -147,14 +145,6 @@ impl ApplicationNode {
             (Node::Abstraction(ab), other) => ab.clone().reduce(other.clone(), None),
             (other, Node::Abstraction(ab)) => ab.clone().reduce(other.clone(), None),
 
-            (Node::Application(ap), other) => {
-                let new = ap.clone().reduce(other.clone(), None)?;
-                if *self.left == new {
-                    return Ok(self.into());
-                }
-
-                Ok(new)
-            },
             (other, Node::Application(ap)) => {
                 let new = ap.clone().reduce(other.clone(), None)?;
                 if *self.right == new {
@@ -162,9 +152,16 @@ impl ApplicationNode {
                 }
 
                 Ok(new)
-            },
+            }
 
+            (Node::Application(ap), other) => {
+                let new = ap.clone().reduce(other.clone(), None)?;
+                if *self.left == new {
+                    return Ok(self.into());
+                }
 
+                Ok(new)
+            }
             _ => Ok(self.into()),
         }
     }

@@ -5,6 +5,7 @@ pub mod parsing;
 pub mod repl;
 pub mod types;
 pub mod utils;
+pub mod stdlib;
 
 use miette::{Diagnostic, SourceSpan};
 pub use parsing::*;
