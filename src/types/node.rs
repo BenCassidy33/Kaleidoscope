@@ -267,7 +267,6 @@ impl Node {
         if let Ok(var) = VariableNode::parse_str(&s[idx..], start + idx) {
             if var.span().len() < s.len() - idx {
                 let rs = &s[var.span().len()..];
-                dbg!(rs);
                 let r = Node::parse_str(rs, var.span().end + idx)?;
                 let sp = start..r.span().end;
                 let ap = ApplicationNode::new(Node::Variable(var), r, sp);
