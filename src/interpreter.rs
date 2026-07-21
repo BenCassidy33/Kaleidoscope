@@ -7,10 +7,7 @@ use thiserror::Error;
 use wasm_bindgen::prelude::*;
 
 use crate::{
-    Lambda, LambdaKind, UnwrapExpressions,
-    opts::{CreateDefaultOpts, DefaultOpts, GetDefaultOpt, Opts},
-    repr_wasm,
-    types::{CreatedAt, Node, ParsingError, ReductionError, WasmNode},
+    Lambda, LambdaKind, LambdaStatement, UnwrapExpressions, opts::{CreateDefaultOpts, DefaultOpts, GetDefaultOpt, Opts}, repr_wasm, types::{CreatedAt, Node, ParsingError, ReductionError, WasmNode},
 };
 
 #[wasm_bindgen]
@@ -161,7 +158,7 @@ where
                 }
             }
 
-            LambdaKind::Statement { mut body } => {
+            LambdaKind::Statement(LambdaStatement { mut body }) => {
                 if opts
                     .get_default_opt(&DefaultOpts::ShouldCaptureAllChanges)
                     .get_current_as::<bool>()

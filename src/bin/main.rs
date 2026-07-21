@@ -8,18 +8,14 @@ use std::{
 
 use clap::Parser;
 use kaleidoscope::{
-    Lambda, LambdaKind, UnwrapExpressions,
-    args::{Args, Subcommands},
-    interpreter::InterpretingError,
-    repl::run_repl,
-    stdlib::{self, generate_lambda_number},
-    types::Node,
+    Lambda, LambdaAssignment, LambdaKind, LambdaStatement, UnwrapExpressions, args::{Args, Subcommands}, interpreter::InterpretingError, repl::run_repl, stdlib::{self, generate_lambda_number, stdlib_assignments}, types::{Node, VariableNode},
 };
 use miette::ErrReport;
 
 fn main() -> miette::Result<()> {
-    dbg!(generate_lambda_number(1).to_string());
+    // dbg!(generate_lambda_number(1).to_string());
 
+    dbg!(VariableNode::parse_str("HELLO", 0));
     // stdlib_assignments();
     todo!("parser broke again!");
     todo!("Remove stdlib arguments from main function...");
@@ -77,7 +73,7 @@ pub fn run(args: &Args) -> miette::Result<()> {
 
     for node in expressions {
         match node.kind() {
-            LambdaKind::Assignment { ident, body } => {
+            LambdaKind::Assignment(LambdaAssignment { ident, body }) => {
                 if let Some(assignment) = assignments.insert(ident.clone(), body.clone()) {
                     if let Some(stdlib_key) = assignments
                         .keys()
@@ -102,7 +98,7 @@ pub fn run(args: &Args) -> miette::Result<()> {
                 };
             }
 
-            LambdaKind::Statement { body } => {
+            LambdaKind::Statement(LambdaStatement{ body }) => {
                 let original = body.clone();
 
                 let rep = body.clone().replace_assignments(&assignments)?;

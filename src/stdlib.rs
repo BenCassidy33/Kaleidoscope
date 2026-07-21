@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    Lambda, LambdaKind, UnzipExpressions,
+    Lambda, LambdaAssignment, LambdaStatement, UnzipExpressions,
     types::{Node, VariableNode},
 };
 
@@ -10,14 +10,10 @@ macro_rules! stdlib_assignments {
         pub fn stdlib_assignments() -> HashMap<VariableNode, Node> {
             let mut stdlib = HashMap::new();
             $(
-                let LambdaKind::Assignment { mut ident, body } =
+                let LambdaAssignment { mut ident, body } =
                 Lambda::parse(format!("{} := {}", stringify!($ident), stringify!($($value)*)))
                     .unzip_expressions()
-                    .unwrap().0[0]
-                    .clone().kind
-                else {
-                    panic!("Invalid stdlib_assignment.");
-                };
+                    .unwrap().assignments[0].clone();
 
                 ident.is_stdlib = true;
                 let body = body.replace_assignments(&stdlib).unwrap();
@@ -42,14 +38,9 @@ pub fn generate_lambda_number(number: u32) -> Node {
         n.push_str(&")".repeat(number as usize));
     }
 
-    let LambdaKind::Statement { ref body } = Lambda::parse(n).unzip_expressions().unwrap().1[0].kind
-    else {
-        unreachable!()
-    };
-
+    let LambdaStatement { ref body } = Lambda::parse(n).unzip_expressions().unwrap().statements[0];
     body.to_owned()
 }
-
 
 //TODO: Check accuracy of these
 // https://en.wikipedia.org/wiki/Lambda_calculus#Logic_and_predicates

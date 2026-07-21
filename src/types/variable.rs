@@ -14,10 +14,10 @@ use crate::{
 #[derive(Debug, Clone, Getters, Eq, Serialize)]
 #[getset(get = "pub")]
 pub struct VariableNode {
-    pub(crate) ident: char,
+    pub(crate) ident: String,
     pub(crate) subscript: Option<String>,
     pub(crate) span: Span,
-    pub(crate) is_stdlib: bool
+    pub(crate) is_stdlib: bool,
 }
 
 repr_wasm!(VariableNode);
@@ -46,7 +46,7 @@ impl PartialEq<str> for VariableNode {
                 }
             }
 
-            None => format!("{}", self.ident),
+            None => self.ident.to_string(),
         };
 
         s == *other
@@ -64,7 +64,7 @@ impl PartialEq<&str> for VariableNode {
                 }
             }
 
-            None => format!("{}", self.ident),
+            None => self.ident.to_string(),
         };
 
         s == *other
@@ -95,9 +95,9 @@ impl Display for VariableNode {
 
 #[wasm_bindgen]
 impl VariableNode {
-    pub fn new(ident: char, subscript: Option<String>, start: usize, had_curly: bool) -> Self {
+    pub fn new(ident: String, subscript: Option<String>, start: usize, had_curly: bool) -> Self {
         Self {
-            ident,
+            ident: ident.to_string(),
             span: match subscript {
                 Some(ref sub) => {
                     if !had_curly {
@@ -109,13 +109,13 @@ impl VariableNode {
                 None => Span::new(start, start + 1),
             },
             subscript,
-            is_stdlib: false
+            is_stdlib: false,
         }
     }
 
     #[wasm_bindgen(getter, js_name = ident)]
-    pub fn get_ident(&self) -> char {
-        self.ident
+    pub fn get_ident(&self) -> String {
+        self.ident.clone()
     }
 
     #[wasm_bindgen(getter, js_name = subscript)]
@@ -124,10 +124,14 @@ impl VariableNode {
     }
 
     pub fn parse_str(s: &str, start: usize) -> Result<Self, ParsingError> {
-        if s.starts_with(VALID_LAMBDA_CHARACTERS) {
+        if s.starts_with('_')
+            || s.starts_with(VALID_LAMBDA_CHARACTERS) && (s.len() == 1 || !s.contains('_'))
+        {
             Err(ParsingError::new(
                 s,
-                Some("Variable contains a lambda character"),
+                Some(
+                    "Variable contains a lambda character. Try using a substring such as L_1 to differentiate the name.",
+                ),
                 0..s.len(),
                 Some(CreatedAt::new()),
             ))?;
@@ -153,35 +157,28 @@ impl VariableNode {
                     ))?
                 }
 
-                Ok(VariableNode::new(
-                    s.chars().next().unwrap(),
-                    None,
-                    start,
-                    false,
-                ))
+                Ok(VariableNode::new(s.to_string(), None, start, false))
             }
 
             n => {
-                let mut chars = s.chars().enumerate();
-                let (_, base) = chars.next().unwrap();
+                let mut chars = s.chars().enumerate().peekable();
+                let (_, base_c) = chars.next().unwrap();
+                let mut base = base_c.to_string();
 
-                if !base.is_alphabetic() {
-                    Err(ParsingError::new(
-                        s,
-                        Some("Invalid Variable Identifier"),
-                        0..s.len(),
-                        Some(CreatedAt::new()),
-                    ))?
+                if base_c.is_uppercase() {
+                    while let Some((_, c)) = chars.peek() {
+                        if c.is_uppercase() && *c != '_' {
+                            let (_, c) = chars.next().unwrap();
+                            base.push(c);
+                        } else {
+                            break;
+                        }
+                    }
                 }
 
-                let (_, delim) = chars.next().ok_or_else(|| {
-                    ParsingError::new(
-                        s,
-                        Some("Expected Variable Subscript Delimiter, found end of expression."),
-                        start..n,
-                        Some(CreatedAt::new()),
-                    )
-                })?;
+                let Some((_, delim)) = chars.next() else {
+                    return Ok(VariableNode::new(base, None, start, false));
+                };
 
                 if delim != '_' {
                     return Ok(VariableNode::new(base, None, start, false));

@@ -133,20 +133,25 @@ impl Node {
     ) -> Result<Node, InterpretingError> {
         match self {
             Node::Variable(ref variable_node) => {
-                if variable_node.ident().is_numeric() {
+                if variable_node
+                    .ident()
+                    .chars()
+                    .find(|c| !c.is_numeric())
+                    .is_none()
+                {
                     return Ok(generate_lambda_number(
-                        variable_node.ident().to_digit(f32::RADIX).ok_or(
+                        variable_node.ident().parse::<u32>().map_err(|_| {
                             InterpretingError::new(
                                 variable_node.to_string(),
                                 Some(format!(
                                     "Could not generate lambda expression for number: {}",
-                                    variable_node.to_string()
+                                    variable_node
                                 )),
                                 0..variable_node.to_string().len(),
                                 None,
                                 None,
-                            ),
-                        )?,
+                            )
+                        })?,
                     ));
                 }
 
@@ -176,6 +181,7 @@ impl Node {
     }
 
     pub fn parse_str(mut s: &str, start: usize) -> Result<Self, ParsingError> {
+        dbg!(&s);
         let mut offset = 0;
         while s.starts_with('(') {
             let range = find_closing_delim(s, ['('], ')').map_err(|_| {
@@ -186,8 +192,10 @@ impl Node {
                 s = &s[1..s.len() - 1];
                 offset += 1;
             } else {
-                let app_left = Node::parse_str(&s[range.start + 1..range.end], start)?;
-                let app_right = Node::parse_str(&s[range.end + 1..], start + range.end + 1)?;
+                let left = &s[range.start + 1..range.end];
+                let right = &s[range.end + 1..];
+                let app_left = Node::parse_str(left, start)?;
+                let app_right = Node::parse_str(right, start + range.end + 1)?;
                 let s = start..app_right.span().end;
 
                 return Ok(Node::Application(ApplicationNode::new(
@@ -198,13 +206,22 @@ impl Node {
 
         if s.starts_with(VALID_LAMBDA_CHARACTERS) {
             let ab = AbstractionNode::parse_str(s, start + offset)?;
+            dbg!(
+                s,
+                ab.to_string(),
+                ab.span().len() < s.len() - 1,
+                ab.span().len(),
+                s.len()
+            );
 
-            if ab.span().len() < s.len() && s[ab.span().len()..] != *")" {
+            // TODO: fuck utf8 'λ' counts as two characters...
+            if ab.to_string().chars().count() < s.len() && s[ab.span().len()..] != *")" {
+                dbg!(s, ab.to_string());
                 let tmp = &s[ab.span().len()..];
                 let r = if tmp.ends_with(")") {
                     Node::parse_str(&tmp[0..tmp.len() - 1], ab.span().end)?
                 } else {
-                    Node::parse_str(&s[ab.span().len()..], ab.span().end)?
+                    Node::parse_str(tmp, ab.span().end)?
                 };
                 let sp = start..r.span().end;
                 let ap = ApplicationNode::new(Node::Abstraction(ab), r, sp);

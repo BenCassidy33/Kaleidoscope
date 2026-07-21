@@ -20,32 +20,40 @@ repr_wasm!(Lambda);
 impl Display for Lambda {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.kind {
-            LambdaKind::Assignment {
+            LambdaKind::Assignment(LambdaAssignment {
                 ref ident,
                 ref body,
                 ..
-            } => write!(f, "{} := {}", ident, body),
-            LambdaKind::Statement { ref body } => write!(f, "{}", body),
+            }) => write!(f, "{} := {}", ident, body),
+            LambdaKind::Statement(LambdaStatement { ref body }) => write!(f, "{}", body),
         }
     }
 }
 
+#[derive(Debug, Serialize, Clone)]
+pub struct LambdaAssignment {
+    pub ident: VariableNode,
+    pub body: Node,
+}
+
+#[derive(Debug, Serialize, Clone)]
+pub struct LambdaStatement {
+    pub body: Node,
+}
+
 #[derive(Debug, Serialize, Clone, IsVariant)]
 pub enum LambdaKind {
-    Assignment {
-        ident: VariableNode,
-        body: Node,
-    },
-    Statement {
-        body: Node,
-    },
+    Assignment(LambdaAssignment),
+    Statement(LambdaStatement),
 }
 
 impl Display for LambdaKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            LambdaKind::Assignment { ident, body, .. } => write!(f, "{} := {}", ident, body),
-            LambdaKind::Statement { body } => write!(f, "{}", body),
+            LambdaKind::Assignment(assignment) => {
+                write!(f, "{} := {}", assignment.ident, assignment.body)
+            }
+            LambdaKind::Statement(statement) => write!(f, "{}", statement.body),
         }
     }
 }
@@ -56,6 +64,7 @@ impl Lambda {
         I: Into<String>,
     {
         let input = input.into();
+        dbg!(&input);
         let mut lines = input.lines().peekable();
         let mut raw_exprs = Vec::new();
 
@@ -89,14 +98,12 @@ impl Lambda {
                 )?;
 
                 Ok(Lambda {
-                    kind: LambdaKind::Assignment {
-                        ident,
-                        body,
-                    },
+                    kind: LambdaKind::Assignment(LambdaAssignment { ident, body }),
                 })
             } else {
                 Ok(Lambda {
-                    kind: Node::parse_str(&expr, 0).map(|e| LambdaKind::Statement { body: e })?,
+                    kind: Node::parse_str(&expr, 0)
+                        .map(|e| LambdaKind::Statement(LambdaStatement { body: e }))?,
                 })
             }
         })
@@ -109,11 +116,7 @@ impl Lambda {
         let mut map = HashMap::new();
 
         for expression in expressions {
-            if let LambdaKind::Assignment {
-                ident,
-                body,
-            } = &expression.kind
-            {
+            if let LambdaKind::Assignment(LambdaAssignment { ident, body }) = &expression.kind {
                 map.insert(ident.clone(), body.clone());
             }
         }
@@ -164,23 +167,56 @@ where
     }
 }
 
+pub struct Unzipped {
+    pub assignments: Vec<LambdaAssignment>,
+    pub statements: Vec<LambdaStatement>,
+}
+
 pub trait UnzipExpressions
 where
     Self: Iterator,
 {
     /// Unzips expression stream into vectors of assignments and statements
-    fn unzip_expressions(self) -> Result<(Vec<Lambda>, Vec<Lambda>), ParsingError>;
+    fn unzip_expressions(self) -> Result<Unzipped, ParsingError>;
+}
+
+impl From<(Vec<Lambda>, Vec<Lambda>)> for Unzipped {
+    fn from(value: (Vec<Lambda>, Vec<Lambda>)) -> Self {
+        Self {
+            assignments: value
+                .0
+                .iter()
+                .map(|n| {
+                    let LambdaKind::Assignment(ref assignment) = n.kind else {
+                        unreachable!()
+                    };
+                    assignment.clone()
+                })
+                .collect(),
+            statements: value
+                .1
+                .iter()
+                .map(|n| {
+                    let LambdaKind::Statement(ref statement) = n.kind else {
+                        unreachable!()
+                    };
+                    statement.clone()
+                })
+                .collect(),
+        }
+    }
 }
 
 impl<T> UnzipExpressions for T
 where
     T: Iterator<Item = Result<Lambda, ParsingError>>,
 {
-    fn unzip_expressions(self) -> Result<(Vec<Lambda>, Vec<Lambda>), ParsingError> {
+    fn unzip_expressions(self) -> Result<Unzipped, ParsingError> {
         Ok(self
             .collect::<Result<Vec<_>, _>>()?
             .into_iter()
-            .partition(|l| matches!(l.kind, LambdaKind::Assignment { .. })))
+            .partition(|l| matches!(l.kind, LambdaKind::Assignment { .. }))
+            .into())
     }
 }
 
@@ -226,13 +262,13 @@ pub enum WasmLambdaKindInner {
 impl From<LambdaKind> for WasmLambdaKind {
     fn from(val: LambdaKind) -> Self {
         match val {
-            LambdaKind::Assignment { ident, body, .. } => WasmLambdaKind {
+            LambdaKind::Assignment(LambdaAssignment { ident, body, .. }) => WasmLambdaKind {
                 kind: WasmLambdaKindInner::Assignment,
                 assignment: Some(WasmAssignment { ident, body }),
                 statement: None,
             },
 
-            LambdaKind::Statement { body } => WasmLambdaKind {
+            LambdaKind::Statement(LambdaStatement { body }) => WasmLambdaKind {
                 kind: WasmLambdaKindInner::Statement,
                 assignment: None,
                 statement: Some(body),
