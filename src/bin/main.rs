@@ -1,4 +1,4 @@
-#![allow(dead_code, unused_variables)]
+#![allow(dead_code, unused)]
 
 use std::{
     collections::HashMap,
@@ -12,13 +12,18 @@ use kaleidoscope::{
     args::{Args, Subcommands},
     interpreter::InterpretingError,
     repl::run_repl,
-    stdlib::{self, stdlib_assignments},
+    stdlib::{self, generate_lambda_number},
     types::Node,
 };
 use miette::ErrReport;
 
 fn main() -> miette::Result<()> {
-    stdlib_assignments();
+    dbg!(generate_lambda_number(1).to_string());
+
+    // stdlib_assignments();
+    todo!("parser broke again!");
+    todo!("Remove stdlib arguments from main function...");
+
     let args = Args::parse();
 
     if args.subcommands.is_none() {
@@ -100,12 +105,14 @@ pub fn run(args: &Args) -> miette::Result<()> {
             LambdaKind::Statement { body } => {
                 let original = body.clone();
 
-                let rep = body.clone().replace_assignments(&assignments);
+                let rep = body.clone().replace_assignments(&assignments)?;
 
                 let red = if let Node::Application(application) = rep.clone() {
                     let mut last = application.reduce_self()?;
 
-                    while let next = last.clone().reduce_self()? && next != last {
+                    while let next = last.clone().reduce_self()?
+                        && next != last
+                    {
                         last = next;
                     }
 

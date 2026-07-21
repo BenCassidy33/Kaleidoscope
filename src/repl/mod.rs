@@ -26,6 +26,7 @@ pub enum ReplError {
     Unknown,
 }
 
+#[allow(unused)]
 pub fn run_repl(show_hello: bool) -> Result<(), ReplError> {
     todo!("Update to replace variables! and use stdlib");
     let mut term = Term::stdout();

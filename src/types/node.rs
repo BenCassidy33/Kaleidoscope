@@ -5,7 +5,10 @@ use derive_more::IsVariant;
 use serde::Serialize;
 
 use crate::{
-    VALID_LAMBDA_CHARACTERS, repr_wasm,
+    VALID_LAMBDA_CHARACTERS,
+    interpreter::InterpretingError,
+    repr_wasm,
+    stdlib::generate_lambda_number,
     types::{
         ApplicationNode, CreatedAt, ParsingError, ReductionError, Span,
         abstraction::AbstractionNode, variable::VariableNode,
@@ -124,30 +127,50 @@ impl Node {
         }
     }
 
-    pub fn replace_assignments(self, assignments: &HashMap<VariableNode, Node>) -> Node {
+    pub fn replace_assignments(
+        self,
+        assignments: &HashMap<VariableNode, Node>,
+    ) -> Result<Node, InterpretingError> {
         match self {
             Node::Variable(ref variable_node) => {
-                if let Some(n) = assignments.get(variable_node) {
-                    return n.to_owned();
+                if variable_node.ident().is_numeric() {
+                    return Ok(generate_lambda_number(
+                        variable_node.ident().to_digit(f32::RADIX).ok_or(
+                            InterpretingError::new(
+                                variable_node.to_string(),
+                                Some(format!(
+                                    "Could not generate lambda expression for number: {}",
+                                    variable_node.to_string()
+                                )),
+                                0..variable_node.to_string().len(),
+                                None,
+                                None,
+                            ),
+                        )?,
+                    ));
                 }
 
-                self
+                if let Some(n) = assignments.get(variable_node) {
+                    return Ok(n.to_owned());
+                }
+
+                Ok(self)
             }
 
             Node::Abstraction(mut abstraction_node) => {
                 abstraction_node.body =
-                    Box::new(abstraction_node.body.replace_assignments(assignments));
+                    Box::new(abstraction_node.body.replace_assignments(assignments)?);
 
-                Node::Abstraction(abstraction_node)
+                Ok(Node::Abstraction(abstraction_node))
             }
 
             Node::Application(mut application_node) => {
                 application_node.left =
-                    Box::new(application_node.left.replace_assignments(assignments));
+                    Box::new(application_node.left.replace_assignments(assignments)?);
                 application_node.right =
-                    Box::new(application_node.right.replace_assignments(assignments));
+                    Box::new(application_node.right.replace_assignments(assignments)?);
 
-                Node::Application(application_node)
+                Ok(Node::Application(application_node))
             }
         }
     }

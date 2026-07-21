@@ -169,13 +169,13 @@ where
                 {
                     let old = body.clone();
                     if let Some(ref assignments) = assignments {
-                        body = body.replace_assignments(assignments);
+                        body = body.replace_assignments(assignments)?;
                     }
 
                     writeln!(stdout, "(Variable Substitutions) {} => {}", old, body)?;
                 } else {
                     if let Some(ref assignments) = assignments {
-                        body = body.replace_assignments(assignments);
+                        body = body.replace_assignments(assignments)?;
                     }
                 }
 

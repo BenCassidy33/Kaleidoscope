@@ -144,7 +144,7 @@ impl VariableNode {
             1 => {
                 let ch = s.chars().next().unwrap();
 
-                if !ch.is_alphabetic() {
+                if !ch.is_alphanumeric() {
                     Err(ParsingError::new(
                         s,
                         Some("Invalid Variable Identifier"),
