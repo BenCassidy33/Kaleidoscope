@@ -1,18 +1,18 @@
+use derive_more::IsVariant;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
-    invocations::Invocation,
     repr_wasm,
     types::{Node, ParsingError, VariableNode, WasmNode},
 };
 use std::{collections::HashMap, fmt::Display};
 
 #[wasm_bindgen]
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, getset::Getters)]
 pub struct Lambda {
+    #[getset(get = "pub")]
     pub(crate) kind: LambdaKind,
-    pub(crate) invocations: Option<Vec<Invocation>>,
 }
 
 repr_wasm!(Lambda);
@@ -25,16 +25,14 @@ impl Display for Lambda {
                 ref body,
             } => write!(f, "{} := {}", ident, body),
             LambdaKind::Statement { ref body } => write!(f, "{}", body),
-            LambdaKind::StandaloneInvocation => todo!(),
         }
     }
 }
 
-#[derive(Debug, Serialize, Clone)]
+#[derive(Debug, Serialize, Clone, IsVariant)]
 pub enum LambdaKind {
     Assignment { ident: VariableNode, body: Node },
     Statement { body: Node },
-    StandaloneInvocation,
 }
 
 impl Display for LambdaKind {
@@ -42,7 +40,6 @@ impl Display for LambdaKind {
         match self {
             LambdaKind::Assignment { ident, body } => write!(f, "{} := {}", ident, body),
             LambdaKind::Statement { body } => write!(f, "{}", body),
-            LambdaKind::StandaloneInvocation => write!(f, "<<Invocation>>"),
         }
     }
 }
@@ -72,16 +69,7 @@ impl Lambda {
             raw_exprs.push(line);
         }
 
-        raw_exprs.into_iter().map(|mut expr| {
-            let (invocations, e) = Invocation::parse(&expr, 0)?;
-            expr = e.to_string();
-
-            let invocations = if !invocations.is_empty() {
-                Some(invocations)
-            } else {
-                None
-            };
-
+        raw_exprs.into_iter().map(|expr| {
             if let Some(idx) = expr.find(":=") {
                 let (raw_ident, raw_body) = expr.split_once(":=").unwrap();
                 let ident = VariableNode::parse_str(
@@ -96,19 +84,10 @@ impl Lambda {
 
                 Ok(Lambda {
                     kind: LambdaKind::Assignment { ident, body },
-                    invocations,
                 })
             } else {
-                if expr.is_empty() && invocations.is_some() {
-                    return Ok(Lambda {
-                        kind: LambdaKind::StandaloneInvocation,
-                        invocations,
-                    });
-                }
-
                 Ok(Lambda {
                     kind: Node::parse_str(&expr, 0).map(|e| LambdaKind::Statement { body: e })?,
-                    invocations,
                 })
             }
         })
@@ -244,12 +223,6 @@ impl From<LambdaKind> for WasmLambdaKind {
                 kind: WasmLambdaKindInner::Statement,
                 assignment: None,
                 statement: Some(body),
-            },
-
-            LambdaKind::StandaloneInvocation => WasmLambdaKind {
-                kind: WasmLambdaKindInner::StandaloneInvocation,
-                assignment: None,
-                statement: None,
             },
         }
     }

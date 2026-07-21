@@ -1,19 +1,10 @@
-pub mod run;
-
-use std::{fs::File, path::PathBuf};
 use clap::{Parser, Subcommand};
-
-pub struct KaleidoscopeError {
-
-}
+use std::{fs::File, path::PathBuf};
 
 #[derive(Parser, Clone, Debug)]
 #[command(version, about, long_about = None)]
 #[command(propagate_version = true)]
 pub struct Args {
-    #[arg(short, long)]
-    pub file_path: Option<PathBuf>,
-
     #[command(subcommand)]
     pub subcommands: Option<Subcommands>,
 }
@@ -27,15 +18,19 @@ pub enum Subcommands {
     },
 
     Run {
-        file: PathBuf
+        #[arg(default_value = "./main.lmda")]
+        files: Vec<PathBuf>,
+
+        // The file to write the results to
+        #[arg(short, long, default_value = "./out.lmda")]
+        out: PathBuf,
+
+        // Write to stdout instead of a file.
+        #[arg(long, default_value_t = false)]
+        stdout: bool,
+
+        // only write the end results of reductions to file/stdout
+        #[arg(long, default_value_t = false)]
+        only_show_reductions: bool
     },
-
-    Check {},
 }
-
-pub fn read_files(main_file_path: PathBuf) -> anyhow::Result<Vec<String>> {
-    let mut main_file = File::open(main_file_path);
-    todo!()
-}
-
-// fn read_file(buf: &mut String) -> anyhow::Result<(

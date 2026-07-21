@@ -1,4 +1,4 @@
-use std::io::{BufWriter, Empty, empty};
+use std::io::{empty};
 
 use derive_more::derive;
 use miette::{Diagnostic, SourceSpan};
@@ -8,7 +8,6 @@ use wasm_bindgen::prelude::*;
 
 use crate::{
     Lambda, LambdaKind, UnwrapExpressions,
-    invocations::InvocationError,
     opts::{CreateDefaultOpts, DefaultOpts, GetDefaultOpt, Opts},
     repr_wasm,
     types::{CreatedAt, Node, ParsingError, ReductionError, WasmNode},
@@ -19,14 +18,13 @@ use crate::{
 #[error("Parsing Error")]
 pub struct InterpretingError {
     #[source_code]
-    src: String,
-    msg: Option<String>,
+    pub(crate) src: String,
+    pub(crate) msg: Option<String>,
 
     #[serde(skip)]
     #[label("{}", msg.as_deref().unwrap_or("here"))]
-    error_span: SourceSpan,
-
-    created_at: Option<CreatedAt>,
+    pub(crate) error_span: SourceSpan,
+    pub(crate) created_at: Option<CreatedAt>,
 }
 
 repr_wasm!(InterpretingError);
@@ -38,17 +36,6 @@ impl From<std::io::Error> for InterpretingError {
             msg: Some(format!("std::io error! Error: {:?}", value)),
             error_span: (0..0).into(),
             created_at: None,
-        }
-    }
-}
-
-impl From<InvocationError> for InterpretingError {
-    fn from(val: InvocationError) -> Self {
-        InterpretingError {
-            src: val.src,
-            msg: val.msg,
-            error_span: val.error_span,
-            created_at: val.created_at,
         }
     }
 }
@@ -157,10 +144,6 @@ where
         let mut frames = Vec::new();
         match statement.kind {
             LambdaKind::Assignment { .. } => {
-                if statement.invocations.is_some() {
-                    todo!();
-                }
-
                 if opts
                     .get_default_opt(&DefaultOpts::ShouldPrintEveryLine)
                     .get_current_as::<bool>()
@@ -226,18 +209,6 @@ where
                 }
 
                 expression_frames.push(frames);
-            }
-
-            LambdaKind::StandaloneInvocation => {
-                for invocation in statement
-                    .invocations
-                    .expect("Standalone Inovaction with no invocations!")
-                {
-                    invocation.invoke()?;
-                    todo!("Invocation Error!");
-                }
-
-                todo!()
             }
         }
     }

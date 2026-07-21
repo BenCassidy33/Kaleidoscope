@@ -249,7 +249,5 @@ pub fn run_cmd(cmd: &str, out: &mut Term, opts: &mut Opts) -> Result<(), ReplErr
                 Ok(())
             }
         }
-
-        _ => todo!(),
     }
 }
