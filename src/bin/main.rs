@@ -108,11 +108,12 @@ pub fn run(args: &Args) -> miette::Result<()> {
                         && next != last
                     {
                         last = next;
+                        println!("{}", last);
                     }
 
                     last
                 } else {
-                    original.clone()
+                    rep.clone()
                 };
 
                 originals.push(original);

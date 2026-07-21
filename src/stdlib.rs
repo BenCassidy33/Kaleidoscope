@@ -1,8 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    Lambda, LambdaAssignment, LambdaStatement, UnzipExpressions,
-    types::{Node, VariableNode},
+    Lambda, LambdaAssignment, LambdaStatement, UnzipExpressions, types::{AbstractionNode, ApplicationNode, Node, VariableNode},
 };
 
 macro_rules! stdlib_assignments {
@@ -29,17 +28,23 @@ macro_rules! stdlib_assignments {
 }
 
 pub fn generate_lambda_number(number: u32) -> Node {
-    let mut n = String::from("Lf.Lx.");
-    if number == 0 {
-        n.push('x');
-    } else {
-        n.push_str(&"(f".repeat(number as usize));
-        n.push('x');
-        n.push_str(&")".repeat(number as usize));
+    let f = VariableNode::new("f".to_string(), None, 0, false);
+    let x = VariableNode::new("x".to_string(), None, 0, false);
+
+    let mut body = Node::Variable(x.clone());
+    for _ in 0..number {
+        body = Node::Application(ApplicationNode::new(
+            Node::Variable(f.clone()),
+            body,
+            0..0,
+        ));
     }
 
-    let LambdaStatement { ref body } = Lambda::parse(n).unzip_expressions().unwrap().statements[0];
-    body.to_owned()
+    Node::Abstraction(AbstractionNode::new(
+        f,
+        Node::Abstraction(AbstractionNode::new(x, body, 0..0)),
+        0..0,
+    ))
 }
 
 //TODO: Check accuracy of these

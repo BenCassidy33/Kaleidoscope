@@ -174,6 +174,16 @@ impl VariableNode {
                             break;
                         }
                     }
+                } else if base_c.is_numeric() {
+                    while let Some((_, c)) = chars.peek() {
+                        if c.is_numeric() {
+                            let (_, c) = chars.next().unwrap();
+                            base.push(c);
+                        } else {
+                            break;
+                        }
+                    }
+
                 }
 
                 let Some((_, delim)) = chars.next() else {
